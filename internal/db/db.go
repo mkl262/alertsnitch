@@ -26,6 +26,9 @@ func Connect(backend string, args ConnectionArgs) (internal.Storer, error) {
 	case "postgres":
 		return connectPG(args)
 
+	case "loki":
+		return connectLoki(args)
+		
 	case "null":
 		return NullDB{}, nil
 

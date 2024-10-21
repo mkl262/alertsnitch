@@ -20,7 +20,7 @@ test_mysql:
   variables:
     MYSQL_DATABASE: alertsnitch
     MYSQL_ROOT_PASSWORD: mysql
-    ALERTSNITCH_DSN: "root:${MYSQL_ROOT_PASSWORD}@tcp(mysql)/${MYSQL_DATABASE}"
+    ALERTSNITCH_BACKEND_ENPOINT: "root:${MYSQL_ROOT_PASSWORD}@tcp(mysql)/${MYSQL_DATABASE}"
     ALERTSNITCH_BACKEND: mysql
   coverage: '/^total:\s+\(statements\)\s+(\d+.\d+)%$/'
   script:
@@ -38,7 +38,7 @@ test_postgres:
     POSTGRES_USER: runner
     POSTGRES_PASSWORD: ""
     POSTGRES_HOST_AUTH_METHOD: trust
-    ALERTSNITCH_DSN: "sslmode=disable user=${POSTGRES_USER} password='' host=postgres database=${POSTGRES_DB}"
+    ALERTSNITCH_BACKEND_ENPOINT: "sslmode=disable user=${POSTGRES_USER} password='' host=postgres database=${POSTGRES_DB}"
     ALERTSNITCH_BACKEND: postgres
   coverage: '/^total:\s+\(statements\)\s+(\d+.\d+)%$/'
   script:

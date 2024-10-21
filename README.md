@@ -53,14 +53,14 @@ This is a sample of a DSN that would connect to the local host over a Unix socke
 
 ```bash
 export ALERTSNITCH_BACKEND="mysql"
-export ALERTSNITCH_DSN="${MYSQL_USER}:${MYSQL_PASSWORD}@/${MYSQL_DATABASE}"
+export ALERTSNITCH_BACKEND_ENPOINT="${MYSQL_USER}:${MYSQL_PASSWORD}@/${MYSQL_DATABASE}"
 ```
 
 ### Postgres
 
 ```bash
 export ALERTSNITCH_BACKEND="postgres"
-export ALERTSNITCH_DSN="sslmode=disable user=${PGUSER} password=${PGPASSWORD} host=${PGHOST} database=${PGDATABASE}"
+export ALERTSNITCH_BACKEND_ENPOINT="sslmode=disable user=${PGUSER} password=${PGPASSWORD} host=${PGHOST} database=${PGDATABASE}"
 ```
 
 ## How to run
@@ -72,7 +72,7 @@ export ALERTSNITCH_DSN="sslmode=disable user=${PGUSER} password=${PGPASSWORD} ho
 ```sh
 $ docker run --rm \
     -p 9567:9567 \
-    -e ALERTSNITCH_DSN \
+    -e ALERTSNITCH_BACKEND_ENPOINT \
     -e ALERTSNITCH_BACKEND \
     registry.gitlab.com/yakshaving.art/alertsnitch
 ```
@@ -117,7 +117,7 @@ route:
 
 ### Environment variables
 
-- **ALERTSNITCH_DSN** *required* database connection query string
+- **ALERTSNITCH_BACKEND_ENPOINT** *required* database connection query string
 - **ALERTSNITCH_ADDR** same as **-listen.address**
 - **ALERTSNITCH_BACKEND**  same as **-database-backend**
 

@@ -47,7 +47,7 @@ func New(db internal.Storer, debug bool) Server {
 
 // Start starts a new server on the given address
 func (s Server) Start(address string) {
-	log.Println("Starting listener on", address, "using", s.db)
+	log.Println("Starting listener on", address)
 	log.Fatal(http.ListenAndServe(address, s.r))
 }
 

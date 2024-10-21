@@ -5,7 +5,7 @@ import (
 )
 
 // DSNVar Environment variable in which the DSN is stored
-const DSNVar = "ALERTSNITCH_DSN"
+const DSNVar = "ALERTSNITCH_BACKEND_ENPOINT"
 
 // Storer saves an Alert Data into a persistence engine
 type Storer interface {
@@ -22,6 +22,21 @@ type AlertGroup struct {
 	Receiver string `json:"receiver"`
 	Status   string `json:"status"`
 	Alerts   Alerts `json:"alerts"`
+
+	GroupLabels       map[string]string `json:"groupLabels"`
+	CommonLabels      map[string]string `json:"commonLabels"`
+	CommonAnnotations map[string]string `json:"commonAnnotations"`
+
+	ExternalURL string `json:"externalURL"`
+}
+
+type FlattenAlertGroup struct {
+	Version  string `json:"version"`
+	GroupKey string `json:"groupKey"`
+
+	Receiver string `json:"receiver"`
+	Status   string `json:"status"`
+	Alert    Alert  `json:"alert"`
 
 	GroupLabels       map[string]string `json:"groupLabels"`
 	CommonLabels      map[string]string `json:"commonLabels"`
