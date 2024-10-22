@@ -4,18 +4,18 @@
 version: '3.7'
 
 services:
-  alertsnitch:
-    image: registry.gitlab.com/yakshaving.art/alertsnitch:0.2
-    ports:
-      - "9567:9567"
-    environment:
-      ALERTSNITCH_BACKEND_ENPOINT: ${ALERTSNITCH_BACKEND_ENDPOINT}
-      ALERTSNITCH_BACKEND: ${ALERTSNITCH_BACKEND}
-    depends_on:
-      - ${ALERTSNITCH_BACKEND}
-    profiles:
-      - loki
-      - mysql 
+  # alertsnitch:
+  #   image: registry.gitlab.com/yakshaving.art/alertsnitch:0.2
+  #   ports:
+  #     - "9567:9567"
+  #   environment:
+  #     ALERTSNITCH_BACKEND_ENPOINT: ${ALERTSNITCH_BACKEND_ENDPOINT}
+  #     ALERTSNITCH_BACKEND: ${ALERTSNITCH_BACKEND}
+  #   depends_on:
+  #     - ${ALERTSNITCH_BACKEND}
+  #   profiles:
+  #     - loki
+  #     - mysql 
 
   loki:
     image: grafana/loki:3.0.0
@@ -34,6 +34,9 @@ services:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./configs:/etc/grafana/provisioning
+      - ./dashboards:/etc/grafana/dashboards
     profiles:
       - loki
       - mysql
