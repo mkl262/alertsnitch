@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"log"
 
 	"gitlab.com/yakshaving.art/alertsnitch/internal"
@@ -10,7 +11,7 @@ import (
 type NullDB struct{}
 
 // Save implements Storer interface
-func (NullDB) Save(data *internal.AlertGroup) error {
+func (NullDB) Save(ctx context.Context, data *internal.AlertGroup) error {
 	log.Printf("save alert %#v\n", data)
 	return nil
 }

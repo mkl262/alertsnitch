@@ -48,7 +48,7 @@ func connectMySQL(args ConnectionArgs) (*MySQLDB, error) {
 }
 
 // Save implements Storer interface
-func (d MySQLDB) Save(data *internal.AlertGroup) error {
+func (d MySQLDB) Save(ctx context.Context, data *internal.AlertGroup) error {
 	return d.unitOfWork(func(tx *sql.Tx) error {
 		r, err := tx.Exec(`
 			INSERT INTO AlertGroup (time, receiver, status, externalURL, groupKey)

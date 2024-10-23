@@ -12,6 +12,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"gitlab.com/yakshaving.art/alertsnitch/internal"
+	"gitlab.com/yakshaving.art/alertsnitch/internal/middleware"
 	"gitlab.com/yakshaving.art/alertsnitch/internal/metrics"
 )
 
@@ -39,7 +40,7 @@ type payload struct {
 }
 
 type LokiConfig struct {
-	Url               *url.URL
+	Url *url.URL
 }
 
 type lokiClient struct {
@@ -129,20 +130,19 @@ func (c *lokiClient) setAuthAndTenantHeaders(req *http.Request) {
 }
 
 // Save implements Storer interface
-func (c *lokiClient) Save(data *internal.AlertGroup) error {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-
-	s, err := c.dataToStream(data)
+func (c *lokiClient) Save(ctx context.Context, data *internal.AlertGroup) error {
+	queryParams := middleware.GetQueryParameters(ctx)
+	logrus.Debugf("Query parameters: %v", queryParams)
+	s, err := c.dataToStream(data, queryParams)
 	if err != nil {
-		return err
+		return fmt.Errorf("error converting data to stream: %w", err)
 	}
 
 	payload := payload{
 		Streams: []stream{s},
 	}
 	payloadBytes, err := json.Marshal(payload)
-	
+
 	logrus.Debugf("Loki request payload: %v", string(payloadBytes))
 
 	if err != nil {
@@ -189,13 +189,9 @@ func (c *lokiClient) CheckModel() error {
 	return nil
 }
 
-func (c *lokiClient) dataToStream(data *internal.AlertGroup) (stream, error) {
-	stream := stream{
-		Stream: make(map[string]string),
-		Values: make([]row, 0),
-	}
-
-	c.setStreamLabels(data, stream.Stream)
+func (c *lokiClient) dataToStream(data *internal.AlertGroup, extraLabels map[string]string) (stream, error) {
+	stream := stream{}
+	stream.Stream = c.getStreamLabels(data, extraLabels)
 
 	for _, alert := range data.Alerts {
 		flattenGroup := internal.FlattenAlertGroup{
@@ -224,15 +220,40 @@ func (c *lokiClient) dataToStream(data *internal.AlertGroup) (stream, error) {
 	return stream, nil
 }
 
-func (c *lokiClient) setStreamLabels(data *internal.AlertGroup, streamLabels map[string]string) {
+var additionalLabels = map[string]string{
+	"severity":  "severity",
+	"priority":  "priority",
+	"level":     "level",
+	"instance":  "instance",
+	"job":       "job",
+	"team":      "team",
+	"env":       "env",
+	"service":   "service",
+	"pod":       "pod",
+	"namespace": "namespace",
+	"node":      "node",
+	"container": "container",
+	"cluster":   "cluster",
+}
+
+func (c *lokiClient) getStreamLabels(data *internal.AlertGroup, extraLabels map[string]string) map[string]string {
+	streamLabels := stream{
+		Stream: make(map[string]string),
+		Values: make([]row, 0),
+	}.Stream
+	
+	for extraKey, extraValue := range extraLabels {
+		streamLabels[extraKey] = extraValue
+	}
+
 	for commonLabel, commonValue := range data.CommonLabels {
-		if label, ok := getAdditionalLabels()[commonLabel]; ok {
+		if label, ok := additionalLabels[commonLabel]; ok {
 			streamLabels[label] = commonValue
 		}
 	}
 
 	for groupLabel, groupValue := range data.GroupLabels {
-		if label, ok := getAdditionalLabels()[groupLabel]; ok {
+		if label, ok := additionalLabels[groupLabel]; ok {
 			streamLabels[label] = groupValue
 		}
 	}
@@ -240,27 +261,10 @@ func (c *lokiClient) setStreamLabels(data *internal.AlertGroup, streamLabels map
 	for _, alert := range data.Alerts {
 		streamLabels["alert_status"] = alert.Status
 	}
-	
+
 	streamLabels["app"] = "alertsnitch"
 	streamLabels["receiver"] = data.Receiver
 	streamLabels["status"] = data.Status
-}
 
-func getAdditionalLabels() map[string]string {
-	return map[string]string{
-		// "alertname": "alertname",
-		"severity": "severity",
-		"priority": "priority",
-		"level":    "level",
-		"instance": "instance",
-		"job":      "job",
-		"team":     "team",
-		"env":      "env",
-		"service":  "service",
-		"pod":      "pod",
-		"namespace": "namespace",
-		"node":     "node",
-		"container": "container",
-		"cluster": "cluster",
-	}
+	return streamLabels
 }

@@ -48,7 +48,7 @@ func connectPG(args ConnectionArgs) (*PostgresDB, error) {
 }
 
 // Save implements Storer interface
-func (d PostgresDB) Save(data *internal.AlertGroup) error {
+func (d PostgresDB) Save(ctx context.Context, data *internal.AlertGroup) error {
 	return d.unitOfWork(func(tx *sql.Tx) error {
 		r := tx.QueryRow(`
 			INSERT INTO AlertGroup (time, receiver, status, externalURL, groupKey)

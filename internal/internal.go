@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"time"
 )
 
@@ -9,7 +10,7 @@ const DSNVar = "ALERTSNITCH_BACKEND_ENPOINT"
 
 // Storer saves an Alert Data into a persistence engine
 type Storer interface {
-	Save(*AlertGroup) error
+	Save(ctx context.Context, data *AlertGroup) error
 	Ping() error
 	CheckModel() error
 }

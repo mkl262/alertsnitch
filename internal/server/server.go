@@ -12,6 +12,7 @@ import (
 	"gitlab.com/yakshaving.art/alertsnitch/internal"
 	"gitlab.com/yakshaving.art/alertsnitch/internal/metrics"
 	"gitlab.com/yakshaving.art/alertsnitch/internal/webhook"
+	"gitlab.com/yakshaving.art/alertsnitch/internal/middleware"
 )
 
 // SupportedWebhookVersion is the alert webhook data version that is supported
@@ -29,6 +30,8 @@ type Server struct {
 // New returns a new web server
 func New(db internal.Storer, debug bool) Server {
 	r := mux.NewRouter()
+	
+	r.Use(middleware.WithQueryParameters)
 
 	s := Server{
 		db: db,
@@ -87,7 +90,7 @@ func (s Server) webhookPost(w http.ResponseWriter, r *http.Request) {
 
 	metrics.AlertsReceivedTotal.WithLabelValues(data.Receiver, data.Status).Add(float64(len(data.Alerts)))
 
-	if err = s.db.Save(data); err != nil {
+	if err = s.db.Save(r.Context(), data); err != nil {
 		metrics.AlertsSavingFailuresTotal.WithLabelValues(data.Receiver, data.Status).Add(float64(len(data.Alerts)))
 
 		log.Printf("failed to save alerts: %s\n", err)
