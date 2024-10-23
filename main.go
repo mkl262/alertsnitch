@@ -27,6 +27,10 @@ type Args struct {
 	MaxOpenConns           int
 	MaxConnLifetimeSeconds int
 
+	LokiTenantID           string
+	LokiBasicAuthUser      string
+	LokiBasicAuthPassword  string
+
 	Debug   bool
 	DryRun  bool
 	Version bool
@@ -50,6 +54,10 @@ func main() {
 	flag.IntVar(&args.MaxIdleConns, "max-idle-connections", env.GetEnvAsInt("ALERTSNITCH_MAX_IDLE_CONNS", 1), "maximum number of idle connections in the pool")
 	flag.IntVar(&args.MaxConnLifetimeSeconds, "max-connection-lifetyme-seconds", env.GetEnvAsInt("ALERTSNITCH_MAX_CONN_LIFETIME", 600), "maximum number of seconds a connection is kept alive in the pool")
 
+	flag.StringVar(&args.LokiTenantID, "tenant-id", env.GetEnv("ALERTSNITCH_LOKI_TENANT_ID", ""), "Loki tenant ID")
+	flag.StringVar(&args.LokiBasicAuthUser, "basic-auth-user", env.GetEnv("ALERTSNITCH_LOKI_BASIC_AUTH_USER", ""), "Loki basic auth user")
+	flag.StringVar(&args.LokiBasicAuthPassword, "basic-auth-password", env.GetEnv("ALERTSNITCH_LOKI_BASIC_AUTH_PASSWORD", ""), "Loki basic auth password")
+
 	flag.Parse()
 
 	if args.Version {
@@ -65,6 +73,12 @@ func main() {
 		MaxIdleConns:           args.MaxIdleConns,
 		MaxOpenConns:           args.MaxOpenConns,
 		MaxConnLifetimeSeconds: args.MaxConnLifetimeSeconds,
+
+		Options: map[string]string{
+			"tenant_id":           args.LokiTenantID,
+			"basic_auth_user":     args.LokiBasicAuthUser,
+			"basic_auth_password": args.LokiBasicAuthPassword,
+		},
 	})
 	if err != nil {
 		fmt.Println("failed to connect to database:", err)

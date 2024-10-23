@@ -15,6 +15,8 @@ type ConnectionArgs struct {
 	MaxIdleConns           int
 	MaxOpenConns           int
 	MaxConnLifetimeSeconds int
+
+	Options map[string]string
 }
 
 // Connect connects to a backend database

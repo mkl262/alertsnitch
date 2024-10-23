@@ -41,6 +41,9 @@ type payload struct {
 
 type LokiConfig struct {
 	Url *url.URL
+	TenantID string
+	BasicAuthUser string
+	BasicAuthPassword string
 }
 
 type lokiClient struct {
@@ -62,6 +65,9 @@ func connectLoki(args ConnectionArgs) (*lokiClient, error) {
 	client := &lokiClient{
 		cfg: LokiConfig{
 			Url: endpoint,
+			TenantID: args.Options["tenant_id"],
+			BasicAuthUser: args.Options["basic_auth_user"],
+			BasicAuthPassword: args.Options["basic_auth_password"],
 		},
 		client: http.Client{
 			Timeout: defaultTimeout,
@@ -116,16 +122,14 @@ func (c *lokiClient) pingContext(ctx context.Context) error {
 }
 
 func (c *lokiClient) setAuthAndTenantHeaders(req *http.Request) {
-	tenantId := req.URL.Query().Get("tenant_id")
-	basicAuthUser := req.URL.Query().Get("basic_auth_user")
-	basicAuthPassword := req.URL.Query().Get("basic_auth_password")
-
-	if basicAuthUser != "" && basicAuthPassword != "" {
-		req.SetBasicAuth(basicAuthUser, basicAuthPassword)
+	if c.cfg.TenantID != "" {
+		req.Header.Add("X-Scope-OrgID", c.cfg.TenantID)
+		logrus.Debugf("Setting tenant ID: %s", c.cfg.TenantID)
 	}
 
-	if tenantId != "" {
-		req.Header.Add("X-Scope-OrgID", tenantId)
+	if c.cfg.BasicAuthUser != "" && c.cfg.BasicAuthPassword != "" {
+		req.SetBasicAuth(c.cfg.BasicAuthUser, c.cfg.BasicAuthPassword)
+		logrus.Debugf("Setting basic auth user: %s, password: %s", c.cfg.BasicAuthUser, c.cfg.BasicAuthPassword)
 	}
 }
 
