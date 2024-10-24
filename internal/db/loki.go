@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,8 +13,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"gitlab.com/yakshaving.art/alertsnitch/internal"
-	"gitlab.com/yakshaving.art/alertsnitch/internal/middleware"
 	"gitlab.com/yakshaving.art/alertsnitch/internal/metrics"
+	"gitlab.com/yakshaving.art/alertsnitch/internal/middleware"
 )
 
 const (
@@ -39,11 +40,27 @@ type payload struct {
 	Streams []stream `json:"streams"`
 }
 
+type Config interface {
+	Validate() error
+}
+
 type LokiConfig struct {
-	Url *url.URL
-	TenantID string
-	BasicAuthUser string
+	Url              *url.URL
+	Auth             AuthConfig
+	RequestTimeout   time.Duration
+}
+
+type AuthConfig struct {
+	TenantID         string
+	BasicAuthUser    string
 	BasicAuthPassword string
+}
+
+func (c LokiConfig) Validate() error {
+	if c.Url == nil {
+		return errors.New("URL is required")
+	}
+	return nil
 }
 
 type lokiClient struct {
@@ -65,14 +82,15 @@ func connectLoki(args ConnectionArgs) (*lokiClient, error) {
 	client := &lokiClient{
 		cfg: LokiConfig{
 			Url: endpoint,
-			TenantID: args.Options["tenant_id"],
-			BasicAuthUser: args.Options["basic_auth_user"],
-			BasicAuthPassword: args.Options["basic_auth_password"],
-		},
-		client: http.Client{
-			Timeout: defaultTimeout,
+			Auth: AuthConfig{
+				TenantID:         args.Options["tenant_id"],
+				BasicAuthUser:    args.Options["basic_auth_user"],
+				BasicAuthPassword: args.Options["basic_auth_password"],
+			},
+			RequestTimeout: defaultTimeout,
 		},
 	}
+
 	if err := client.Ping(); err != nil {
 		return nil, err
 	}
@@ -90,11 +108,10 @@ func (c *lokiClient) Ping() error {
 		logrus.Debugf("Failed to ping Loki: %s", err)
 		return err
 	}
+	
 	metrics.DatabaseUp.Set(1)
-
-	logrus.Debugf("Pinged Loki...")
-
-	return c.pingContext(ctx)
+	logrus.Debugf("Pinged Loki successfully")
+	return nil
 }
 
 func (c *lokiClient) pingContext(ctx context.Context) error {
@@ -122,15 +139,17 @@ func (c *lokiClient) pingContext(ctx context.Context) error {
 }
 
 func (c *lokiClient) setAuthAndTenantHeaders(req *http.Request) {
-	if c.cfg.TenantID != "" {
-		req.Header.Add("X-Scope-OrgID", c.cfg.TenantID)
-		logrus.Debugf("Setting tenant ID: %s", c.cfg.TenantID)
+	if c.cfg.Auth.TenantID != "" {
+		req.Header.Add("X-Scope-OrgID", c.cfg.Auth.TenantID)
+		logrus.Debugf("Setting tenant ID: %s", c.cfg.Auth.TenantID)
 	}
 
-	if c.cfg.BasicAuthUser != "" && c.cfg.BasicAuthPassword != "" {
-		req.SetBasicAuth(c.cfg.BasicAuthUser, c.cfg.BasicAuthPassword)
-		logrus.Debugf("Setting basic auth user: %s, password: %s", c.cfg.BasicAuthUser, c.cfg.BasicAuthPassword)
+	if c.cfg.Auth.BasicAuthUser != "" && c.cfg.Auth.BasicAuthPassword != "" {
+		req.SetBasicAuth(c.cfg.Auth.BasicAuthUser, c.cfg.Auth.BasicAuthPassword)
+		logrus.Debugf("Setting basic auth user: %s, password: %s", c.cfg.Auth.BasicAuthUser, c.cfg.Auth.BasicAuthPassword)
 	}
+
+	req.Header.Set("Content-Type", "application/json")
 }
 
 // Save implements Storer interface
@@ -160,7 +179,6 @@ func (c *lokiClient) Save(ctx context.Context, data *internal.AlertGroup) error 
 	}
 
 	c.setAuthAndTenantHeaders(req)
-	req.Header.Set("Content-Type", "application/json")
 
 	res, err := c.client.Do(req)
 	if res != nil {
