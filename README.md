@@ -1,7 +1,10 @@
+> [!IMPORTANT] Credits
+> This project is a fork of [yakshaving.art/alertsnitch](https://gitlab.com/yakshaving.art/alertsnitch) which was last updated in 2020. We've added Loki support while maintaining the original project's spirit of making alert history queryable.
+
 # AlertSnitch
 
-Captures Prometheus AlertManager alerts and writes them in a MySQL or
-Postgres database for future examination.
+Captures Prometheus AlertManager alerts and writes them in a MySQL, Postgres or Loki 
+for future examination.
 
 Because given a noisy enough alerting environment, offline querying
 capabilities of triggered alerts is extremely valuable.
@@ -16,9 +19,9 @@ capabilities of triggered alerts is extremely valuable.
 ```mermaid
 graph TD
     A[alertmanager] -->|POST|B(AlertSnitch)
-    B --> |Save|C(MySQL/PG Database)
+    B --> |Save|C(MySQL/PG/Loki)
     C -.-|Graph|G[Grafana]
-    C -.-|Query|D[MySQL/PG Client]
+    C -.-|Query|D[Client]
     style B fill:#f9f,stroke:#333,stroke-width:1px
     style C fill:#00A0A0,stroke:#333,stroke-width:1px
     style D fill:#00C000
@@ -30,24 +33,26 @@ graph TD
 Simply install to your $GOPATH using your GO tools
 
 ```sh
-$ go get gitlab.com/yakshaving.art/alertsnitch`
+$ go get github.com/mikehsu0618/alertsnitch
 ```
 
 ## Requirements
 
-To run AlertSnitch requires a MySQL or Postgres database to write to.
+To run AlertSnitch requires one of the following backends:
+- MySQL database
+- Postgres database 
+- Loki instance
 
-The database must be initialized with AlertSnitch model.
-
+For MySQL/Postgres, the database must be initialized with AlertSnitch model.
 AlertSnitch will not become online until the model is up to date with the
-expected one. Bootstrapping scripts are provided in the [scripts][./script.d]
+expected one. Bootstrapping scripts are provided in the [scripts](./script.d)
 folder.
 
 ## Configuration
 
 ### MySQL
 
-For specifics about how to set up the MySQL DSN refer to [Go MySQL client driver][1]
+For specifics about how to set up the MySQL DSN refer to [Go MySQL client driver](https://github.com/go-sql-driver/mysql)
 
 This is a sample of a DSN that would connect to the local host over a Unix socket
 
@@ -63,31 +68,44 @@ export ALERTSNITCH_BACKEND="postgres"
 export ALERTSNITCH_BACKEND_ENPOINT="sslmode=disable user=${PGUSER} password=${PGPASSWORD} host=${PGHOST} database=${PGDATABASE}"
 ```
 
+### Loki
+
+```bash
+export ALERTSNITCH_BACKEND="loki"
+export ALERTSNITCH_BACKEND_ENPOINT="http://loki:3100"
+export ALERTSNITCH_LOKI_TENANT_ID="tenant1"  # Optional
+export ALERTSNITCH_LOKI_BASIC_AUTH_USER="user"  # Optional
+export ALERTSNITCH_LOKI_BASIC_AUTH_PASSWORD="pass"  # Optional
+```
+
 ## How to run
 
 ### Running with Docker
 
-**Run using docker in this very registry, for ex.**
+**Run using docker compose**
 
-```sh
-$ docker run --rm \
-    -p 9567:9567 \
-    -e ALERTSNITCH_BACKEND_ENPOINT \
-    -e ALERTSNITCH_BACKEND \
-    registry.gitlab.com/yakshaving.art/alertsnitch
+A docker-compose.yml file is provided with support for both MySQL and Loki backends:
+
+```bash
+# For MySQL backend
+docker-compose --profile mysql up
+
+# For Loki backend
+docker-compose --profile loki up
 ```
 
 ### Running Manually
 
 1. Open a terminal and run the following
-1. Copy the AlertSnitch binary from your $GOPATH to `/usr/local/bin` with `sudo cp ~/go/bin/alertsnitch /usr/local/bin`
-1. Now run AlertSnitch as with just `alertsnitch`
+2. Copy the AlertSnitch binary from your $GOPATH to `/usr/local/bin` with `sudo cp ~/go/bin/alertsnitch /usr/local/bin`
+3. Now run AlertSnitch as with just `alertsnitch`
    - To just see the alerts that are being received, use the *null* backend with `ALERTSNITCH_BACKEND=null`
 
 ### Setting up in AlertManager
 
 Once AlertSnitch is up and running, configure the Prometheus Alert Manager to
 forward every alert to it on the `/webhooks` path.
+
 
 ```yaml
 ---
@@ -96,6 +114,9 @@ receivers:
   webhook_configs:
     - url: http://<alertsnitch-host-or-ip>:9567/webhook
 ```
+
+> [!NOTE] 
+> If using Loki, you can utilize query parameters as external labels, such as `/webhook?source=alertmanager`.
 
 Then add the route
 
@@ -110,16 +131,19 @@ route:
 
 ### Command line arguments
 
-* **-database-backend** sets the database backend to connect to, supported are `mysql`, `postgres` and `null`
+* **-database-backend** sets the database backend to connect to, supported are `mysql`, `postgres`, `loki` and `null`
 * **-debug** dumps the received WebHook payloads to the log so you can understand what is going on
 * **-listen.address** _string_ address in which to listen for HTTP requests (default ":9567")
 * **-version** prints the version and exit
 
 ### Environment variables
 
-- **ALERTSNITCH_BACKEND_ENPOINT** *required* database connection query string
+- **ALERTSNITCH_BACKEND_ENPOINT** *required* database/loki connection endpoint
 - **ALERTSNITCH_ADDR** same as **-listen.address**
-- **ALERTSNITCH_BACKEND**  same as **-database-backend**
+- **ALERTSNITCH_BACKEND** same as **-database-backend**
+- **ALERTSNITCH_LOKI_TENANT_ID** Loki tenant ID (optional)
+- **ALERTSNITCH_LOKI_BASIC_AUTH_USER** Loki basic auth username (optional)
+- **ALERTSNITCH_LOKI_BASIC_AUTH_PASSWORD** Loki basic auth password (optional)
 
 ### Readiness probe
 
@@ -153,9 +177,12 @@ by the alert manager.
 
 ### Grafana Compatibility
 
-AlertSnitch writes alerts in such a way that they can be explored using
-Grafana's MySQL/Postgres Data Source plugin. Refer to Grafana documentation
-for further instructions.
+AlertSnitch writes alerts in such a way that they can be explored using:
+- Grafana's MySQL Data Source plugin
+- Grafana's PostgreSQL Data Source plugin  
+- Grafana's Loki Data Source
+
+Sample dashboards are provided in the [dashboards](./dashboards) folder for both SQL and Loki backends.
 
 ## Testing locally
 
@@ -170,3 +197,7 @@ make teardown_local_testing
 ```
 
 [1]: https://github.com/go-sql-driver/mysql
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for full details.
