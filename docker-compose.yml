@@ -4,28 +4,38 @@
 version: '3.7'
 
 services:
-  # alertsnitch:
-  #   image: registry.gitlab.com/yakshaving.art/alertsnitch:0.2
-  #   ports:
-  #     - "9567:9567"
-  #   environment:
-  #     ALERTSNITCH_BACKEND_ENPOINT: ${ALERTSNITCH_BACKEND_ENDPOINT}
-  #     ALERTSNITCH_BACKEND: ${ALERTSNITCH_BACKEND}
-  #   depends_on:
-  #     - ${ALERTSNITCH_BACKEND}
-  #   profiles:
-  #     - loki
-  #     - mysql 
+  alertsnitch:
+    image: mikehsu0618/alertsnitch:latest
+    ports:
+      - "9567:9567"
+    env_file:
+      - .env
+    environment:
+      ALERTSNITCH_DEBUG: true
+      ALERTSNITCH_BACKEND_ENPOINT: "${ALERTSNITCH_BACKEND_ENPOINT}"
+      ALERTSNITCH_BACKEND: "${ALERTSNITCH_BACKEND}"
+      ALERTSNITCH_LOKI_TENANT_ID: "${ALERTSNITCH_LOKI_TENANT_ID}"
+      ALERTSNITCH_LOKI_BASIC_AUTH_USER: "${ALERTSNITCH_LOKI_BASIC_AUTH_USER}"
+      ALERTSNITCH_LOKI_BASIC_AUTH_PASSWORD: "${ALERTSNITCH_LOKI_BASIC_AUTH_PASSWORD}"
+    depends_on:
+      - "${ALERTSNITCH_BACKEND}"
+    profiles:
+      - loki
+      - mysql 
 
   loki:
     image: grafana/loki:3.0.0
     container_name: loki
     ports:
       - "3100:3100"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
     profiles:
-      - loki  # 只會在 loki profile 啟動時啟動
+      - loki 
 
   grafana:
     image: grafana/grafana:11.2.0

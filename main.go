@@ -38,7 +38,7 @@ type Args struct {
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-		logrus.Warn("Error loading .env file")
+		logrus.Debug("Error loading .env file")
 	}
 
 	args := Args{}
