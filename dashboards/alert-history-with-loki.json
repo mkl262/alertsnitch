@@ -1,1767 +1,2138 @@
 {
-    "annotations": {
-      "list": [
-        {
-          "builtIn": 1,
-          "datasource": {
-            "type": "grafana",
-            "uid": "-- Grafana --"
-          },
-          "enable": true,
-          "hide": true,
-          "iconColor": "rgba(0, 211, 255, 1)",
-          "name": "Annotations & Alerts",
-          "type": "dashboard"
-        }
-      ]
-    },
-    "editable": true,
-    "fiscalYearStartMonth": 0,
-    "graphTooltip": 0,
-    "id": 54,
-    "links": [],
-    "panels": [
+  "annotations": {
+    "list": [
       {
+        "builtIn": 1,
         "datasource": {
-          "default": false,
-          "type": "prometheus",
-          "uid": "${datasource}"
+          "type": "grafana",
+          "uid": "-- Grafana --"
         },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "continuous-GrYlRd"
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 11,
-          "w": 12,
-          "x": 0,
-          "y": 0
-        },
-        "id": 11,
-        "options": {
-          "displayMode": "gradient",
-          "maxVizHeight": 300,
-          "minVizHeight": 16,
-          "minVizWidth": 8,
-          "namePlacement": "auto",
-          "orientation": "horizontal",
-          "reduceOptions": {
-            "calcs": [
-              "lastNotNull"
-            ],
-            "fields": "",
-            "values": false
-          },
-          "showUnfilled": true,
-          "sizing": "auto",
-          "valueMode": "color"
-        },
-        "pluginVersion": "11.3.0-193362",
-        "targets": [
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "${datasource}"
-            },
-            "disableTextWrap": false,
-            "editorMode": "code",
-            "exemplar": false,
-            "expr": "topk(20, (sum by (alertname) (changes(ALERTS_FOR_STATE[$__range]) AND ignoring(alertstate) max_over_time(ALERTS{alertstate=\"firing\"}[$__range])) + (count by (alertname) (changes(ALERTS_FOR_STATE[$__range]) AND ignoring(alertstate) max_over_time(ALERTS{alertstate=\"firing\"}[$__range])) * 1)))",
-            "fullMetaSearch": false,
-            "includeNullMetadata": true,
-            "instant": true,
-            "legendFormat": "__auto",
-            "range": false,
-            "refId": "A",
-            "useBackend": false
-          }
-        ],
-        "title": "Top 20 triggered Alerts",
-        "type": "bargauge"
-      },
-      {
-        "datasource": {
-          "default": false,
-          "type": "loki",
-          "uid": "${loki_datasource}"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              }
-            },
-            "fieldMinMax": false,
-            "mappings": []
-          },
-          "overrides": [
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "warning"
-              },
-              "properties": [
-                {
-                  "id": "color",
-                  "value": {
-                    "fixedColor": "yellow",
-                    "mode": "fixed"
-                  }
-                }
-              ]
-            },
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "info"
-              },
-              "properties": [
-                {
-                  "id": "color",
-                  "value": {
-                    "fixedColor": "green",
-                    "mode": "fixed"
-                  }
-                }
-              ]
-            },
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "critical"
-              },
-              "properties": [
-                {
-                  "id": "color",
-                  "value": {
-                    "fixedColor": "red",
-                    "mode": "fixed"
-                  }
-                }
-              ]
-            }
-          ]
-        },
-        "gridPos": {
-          "h": 11,
-          "w": 6,
-          "x": 12,
-          "y": 0
-        },
-        "id": 12,
-        "options": {
-          "displayLabels": [
-            "name",
-            "percent"
-          ],
-          "legend": {
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true,
-            "values": []
-          },
-          "pieType": "pie",
-          "reduceOptions": {
-            "calcs": [
-              "lastNotNull"
-            ],
-            "fields": "",
-            "values": false
-          },
-          "tooltip": {
-            "mode": "single",
-            "sort": "none"
-          }
-        },
-        "targets": [
-          {
-            "datasource": {
-              "type": "loki",
-              "uid": "${loki_datasource}"
-            },
-            "editorMode": "builder",
-            "expr": "count by(severity) (count_over_time({app=\"alertsnitch\"} |= `` [$__range]))",
-            "legendFormat": "{{severity}}",
-            "queryType": "range",
-            "refId": "A"
-          }
-        ],
-        "title": "Triggered Alerts by Severity",
-        "type": "piechart"
-      },
-      {
-        "datasource": {
-          "default": false,
-          "type": "loki",
-          "uid": "${loki_datasource}"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              }
-            },
-            "fieldMinMax": false,
-            "mappings": []
-          },
-          "overrides": [
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "warning"
-              },
-              "properties": [
-                {
-                  "id": "color",
-                  "value": {
-                    "fixedColor": "yellow",
-                    "mode": "fixed"
-                  }
-                }
-              ]
-            },
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "info"
-              },
-              "properties": [
-                {
-                  "id": "color",
-                  "value": {
-                    "fixedColor": "green",
-                    "mode": "fixed"
-                  }
-                }
-              ]
-            },
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "critical"
-              },
-              "properties": [
-                {
-                  "id": "color",
-                  "value": {
-                    "fixedColor": "red",
-                    "mode": "fixed"
-                  }
-                }
-              ]
-            }
-          ]
-        },
-        "gridPos": {
-          "h": 11,
-          "w": 6,
-          "x": 18,
-          "y": 0
-        },
-        "id": 13,
-        "options": {
-          "displayLabels": [
-            "name",
-            "percent"
-          ],
-          "legend": {
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true,
-            "values": []
-          },
-          "pieType": "pie",
-          "reduceOptions": {
-            "calcs": [
-              "lastNotNull"
-            ],
-            "fields": "",
-            "values": false
-          },
-          "tooltip": {
-            "mode": "single",
-            "sort": "none"
-          }
-        },
-        "targets": [
-          {
-            "datasource": {
-              "type": "loki",
-              "uid": "${loki_datasource}"
-            },
-            "editorMode": "builder",
-            "expr": "count by(priority) (count_over_time({app=\"alertsnitch\"} |= `` [$__range]))",
-            "legendFormat": "{{severity}}",
-            "queryType": "range",
-            "refId": "A"
-          }
-        ],
-        "title": "Triggered Alerts by Priority",
-        "type": "piechart"
-      },
-      {
-        "datasource": {
-          "default": false,
-          "type": "loki",
-          "uid": "${loki_datasource}"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "thresholds"
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                }
-              ]
-            }
-          },
-          "overrides": [
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "{app=\"alertsnitch\"}"
-              },
-              "properties": [
-                {
-                  "id": "color",
-                  "value": {
-                    "fixedColor": "red",
-                    "mode": "fixed"
-                  }
-                }
-              ]
-            }
-          ]
-        },
-        "gridPos": {
-          "h": 6,
-          "w": 5,
-          "x": 0,
-          "y": 11
-        },
-        "id": 1,
-        "options": {
-          "colorMode": "value",
-          "graphMode": "area",
-          "justifyMode": "auto",
-          "orientation": "auto",
-          "percentChangeColorMode": "standard",
-          "reduceOptions": {
-            "calcs": [
-              "lastNotNull"
-            ],
-            "fields": "",
-            "values": false
-          },
-          "showPercentChange": false,
-          "textMode": "auto",
-          "wideLayout": true
-        },
-        "pluginVersion": "11.3.0-193362",
-        "targets": [
-          {
-            "datasource": {
-              "type": "loki",
-              "uid": "${loki_datasource}"
-            },
-            "editorMode": "builder",
-            "expr": "sum by(app) (count_over_time({app=\"alertsnitch\", alert_status=\"firing\"} [$__range]))",
-            "queryType": "range",
-            "refId": "A"
-          }
-        ],
-        "title": "total number of alert sent",
-        "type": "stat"
-      },
-      {
-        "datasource": {
-          "default": false,
-          "type": "loki",
-          "uid": "${loki_datasource}"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "thresholds"
-            },
-            "custom": {
-              "align": "auto",
-              "cellOptions": {
-                "type": "auto"
-              },
-              "inspect": false
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 6,
-          "w": 7,
-          "x": 5,
-          "y": 11
-        },
-        "id": 2,
-        "options": {
-          "cellHeight": "sm",
-          "footer": {
-            "countRows": false,
-            "fields": "",
-            "reducer": [
-              "sum"
-            ],
-            "show": false
-          },
-          "showHeader": true
-        },
-        "pluginVersion": "11.3.0-193362",
-        "targets": [
-          {
-            "datasource": {
-              "type": "loki",
-              "uid": "${loki_datasource}"
-            },
-            "editorMode": "builder",
-            "expr": "sum by(severity) (count_over_time({app=\"alertsnitch\", alert_status=\"firing\"} [$__range]))",
-            "legendFormat": "{{serverity}}",
-            "queryType": "instant",
-            "refId": "A"
-          }
-        ],
-        "title": "alert statistics",
-        "transformations": [
-          {
-            "id": "organize",
-            "options": {
-              "excludeByName": {
-                "Time": true
-              },
-              "includeByName": {},
-              "indexByName": {},
-              "renameByName": {
-                "Value #A": "count",
-                "severity": ""
-              }
-            }
-          },
-          {
-            "id": "sortBy",
-            "options": {
-              "fields": {},
-              "sort": [
-                {
-                  "desc": false,
-                  "field": "severity"
-                }
-              ]
-            }
-          }
-        ],
-        "type": "table"
-      },
-      {
-        "datasource": {
-          "default": false,
-          "type": "loki",
-          "uid": "${loki_datasource}"
-        },
-        "description": "",
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "thresholds"
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 6,
-          "w": 5,
-          "x": 12,
-          "y": 11
-        },
-        "id": 3,
-        "options": {
-          "colorMode": "value",
-          "graphMode": "area",
-          "justifyMode": "auto",
-          "orientation": "auto",
-          "percentChangeColorMode": "standard",
-          "reduceOptions": {
-            "calcs": [
-              "lastNotNull"
-            ],
-            "fields": "",
-            "values": false
-          },
-          "showPercentChange": false,
-          "textMode": "auto",
-          "wideLayout": true
-        },
-        "pluginVersion": "11.3.0-193362",
-        "targets": [
-          {
-            "datasource": {
-              "type": "loki",
-              "uid": "${loki_datasource}"
-            },
-            "editorMode": "builder",
-            "expr": "sum by(app) (count_over_time({app=\"alertsnitch\", alert_status=\"resolved\"} [$__range]))",
-            "queryType": "range",
-            "refId": "A"
-          }
-        ],
-        "title": "total number of alert resolved",
-        "type": "stat"
-      },
-      {
-        "datasource": {
-          "default": false,
-          "type": "loki",
-          "uid": "${loki_datasource}"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "thresholds"
-            },
-            "custom": {
-              "align": "auto",
-              "cellOptions": {
-                "type": "auto"
-              },
-              "inspect": false
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 6,
-          "w": 7,
-          "x": 17,
-          "y": 11
-        },
-        "id": 4,
-        "options": {
-          "cellHeight": "sm",
-          "footer": {
-            "countRows": false,
-            "fields": "",
-            "reducer": [
-              "sum"
-            ],
-            "show": false
-          },
-          "showHeader": true
-        },
-        "pluginVersion": "11.3.0-193362",
-        "targets": [
-          {
-            "datasource": {
-              "type": "loki",
-              "uid": "${loki_datasource}"
-            },
-            "editorMode": "builder",
-            "expr": "sum by(severity) (count_over_time({app=\"alertsnitch\", alert_status=\"resolved\"} [$__range]))",
-            "legendFormat": "{{serverity}}",
-            "queryType": "instant",
-            "refId": "A"
-          }
-        ],
-        "title": "resolved statistics",
-        "transformations": [
-          {
-            "id": "organize",
-            "options": {
-              "excludeByName": {
-                "Time": true
-              },
-              "includeByName": {},
-              "indexByName": {},
-              "renameByName": {
-                "Value #A": "count",
-                "severity": ""
-              }
-            }
-          },
-          {
-            "id": "sortBy",
-            "options": {
-              "fields": {},
-              "sort": [
-                {
-                  "desc": false,
-                  "field": "severity"
-                }
-              ]
-            }
-          }
-        ],
-        "type": "table"
-      },
-      {
-        "datasource": {
-          "default": false,
-          "type": "loki",
-          "uid": "${loki_datasource}"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "continuous-BlYlRd"
-            },
-            "custom": {
-              "axisBorderShow": false,
-              "axisCenteredZero": false,
-              "axisColorMode": "text",
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "barWidthFactor": 0.8,
-              "drawStyle": "bars",
-              "fillOpacity": 100,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "insertNulls": false,
-              "lineInterpolation": "linear",
-              "lineWidth": 10,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "auto",
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "normal"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 17
-        },
-        "id": 5,
-        "maxDataPoints": 100,
-        "options": {
-          "legend": {
-            "calcs": [],
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {
-            "mode": "single",
-            "sort": "none"
-          }
-        },
-        "targets": [
-          {
-            "datasource": {
-              "type": "loki",
-              "uid": "${loki_datasource}"
-            },
-            "editorMode": "builder",
-            "expr": "sum by(app, severity) (count_over_time({app=\"alertsnitch\", alert_status=\"firing\"} [$__auto]))",
-            "legendFormat": "alert triggered count: {{severity}}",
-            "queryType": "range",
-            "refId": "A"
-          }
-        ],
-        "title": "alert triggered",
-        "type": "timeseries"
-      },
-      {
-        "datasource": {
-          "default": false,
-          "type": "loki",
-          "uid": "${loki_datasource}"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "continuous-BlYlRd",
-              "seriesBy": "last"
-            },
-            "custom": {
-              "axisBorderShow": false,
-              "axisCenteredZero": false,
-              "axisColorMode": "text",
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "barWidthFactor": 0.8,
-              "drawStyle": "bars",
-              "fillOpacity": 100,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "insertNulls": false,
-              "lineInterpolation": "linear",
-              "lineWidth": 10,
-              "pointSize": 5,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "auto",
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "normal"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 17
-        },
-        "id": 6,
-        "maxDataPoints": 100,
-        "options": {
-          "legend": {
-            "calcs": [],
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {
-            "mode": "single",
-            "sort": "none"
-          }
-        },
-        "targets": [
-          {
-            "datasource": {
-              "type": "loki",
-              "uid": "${loki_datasource}"
-            },
-            "editorMode": "builder",
-            "expr": "sum by(app, severity) (count_over_time({app=\"alertsnitch\", alert_status=\"resolved\"} [$__auto]))",
-            "legendFormat": "alert triggered count: {{severity}}",
-            "queryType": "range",
-            "refId": "A"
-          }
-        ],
-        "title": "resolved triggered",
-        "type": "timeseries"
-      },
-      {
-        "datasource": {
-          "default": false,
-          "type": "loki",
-          "uid": "${loki_datasource}"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "thresholds"
-            },
-            "custom": {
-              "align": "left",
-              "cellOptions": {
-                "type": "auto"
-              },
-              "filterable": true,
-              "inspect": false
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": [
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "startsAt"
-              },
-              "properties": [
-                {
-                  "id": "unit",
-                  "value": "dateTimeFromNow"
-                },
-                {
-                  "id": "custom.width",
-                  "value": 85
-                }
-              ]
-            },
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "endsAt"
-              },
-              "properties": [
-                {
-                  "id": "unit",
-                  "value": "dateTimeFromNow"
-                },
-                {
-                  "id": "custom.width",
-                  "value": 84
-                }
-              ]
-            },
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "severity"
-              },
-              "properties": [
-                {
-                  "id": "custom.width",
-                  "value": 72
-                }
-              ]
-            },
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "alertname"
-              },
-              "properties": [
-                {
-                  "id": "custom.width",
-                  "value": 187
-                }
-              ]
-            }
-          ]
-        },
-        "gridPos": {
-          "h": 7,
-          "w": 12,
-          "x": 0,
-          "y": 25
-        },
-        "id": 8,
-        "options": {
-          "cellHeight": "sm",
-          "footer": {
-            "countRows": false,
-            "fields": "",
-            "reducer": [
-              "sum"
-            ],
-            "show": false
-          },
-          "frameIndex": 0,
-          "showHeader": true,
-          "sortBy": []
-        },
-        "pluginVersion": "11.3.0-193362",
-        "targets": [
-          {
-            "datasource": {
-              "type": "loki",
-              "uid": "${loki_datasource}"
-            },
-            "editorMode": "builder",
-            "expr": "{app=\"alertsnitch\"} | json",
-            "queryType": "range",
-            "refId": "A"
-          }
-        ],
-        "title": "alert not resolved",
-        "transformations": [
-          {
-            "id": "extractFields",
-            "options": {
-              "format": "auto",
-              "keepTime": false,
-              "replace": true,
-              "source": "labels"
-            }
-          },
-          {
-            "id": "groupBy",
-            "options": {
-              "fields": {
-                "Time": {
-                  "aggregations": [],
-                  "operation": "aggregate"
-                },
-                "alert_annotations_description": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_annotations_summary": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_endsAt": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_fingerprint": {
-                  "aggregations": [],
-                  "operation": "groupby"
-                },
-                "alert_generatorURL": {
-                  "aggregations": [],
-                  "operation": "aggregate"
-                },
-                "alert_labels_alertname": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_labels_severity": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_startsAt": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                }
-              }
-            }
-          },
-          {
-            "id": "filterByValue",
-            "options": {
-              "filters": [
-                {
-                  "config": {
-                    "id": "equal",
-                    "options": {
-                      "value": "0001-01-01T00:00:00Z"
-                    }
-                  },
-                  "fieldName": "alert_endsAt (first)"
-                }
-              ],
-              "match": "all",
-              "type": "include"
-            }
-          },
-          {
-            "id": "organize",
-            "options": {
-              "excludeByName": {
-                "alert_endsAt (first)": true,
-                "alert_fingerprint": true
-              },
-              "includeByName": {},
-              "indexByName": {
-                "alert_annotations_description (first)": 6,
-                "alert_annotations_summary (first)": 5,
-                "alert_endsAt (first)": 4,
-                "alert_fingerprint": 0,
-                "alert_labels_alertname (first)": 1,
-                "alert_labels_severity (first)": 2,
-                "alert_startsAt (first)": 3
-              },
-              "renameByName": {
-                "alert_annotations_description (first)": "description",
-                "alert_annotations_description (lastNotNull)": "description",
-                "alert_annotations_summary (first)": "summary",
-                "alert_annotations_summary (lastNotNull)": "summary",
-                "alert_endsAt (first)": "endsAt",
-                "alert_endsAt (lastNotNull)": "endsAt",
-                "alert_fingerprint": "",
-                "alert_labels_alertname (first)": "alertname",
-                "alert_labels_alertname (lastNotNull)": "alertname",
-                "alert_labels_severity (first)": "severity",
-                "alert_labels_severity (lastNotNull)": "severity",
-                "alert_startsAt (first)": "startsAt",
-                "alert_startsAt (lastNotNull)": "startsAt"
-              }
-            }
-          }
-        ],
-        "type": "table"
-      },
-      {
-        "datasource": {
-          "default": false,
-          "type": "loki",
-          "uid": "${loki_datasource}"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "thresholds"
-            },
-            "custom": {
-              "align": "left",
-              "cellOptions": {
-                "type": "auto"
-              },
-              "filterable": true,
-              "inspect": false
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": [
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "startsAt"
-              },
-              "properties": [
-                {
-                  "id": "unit",
-                  "value": "dateTimeFromNow"
-                },
-                {
-                  "id": "custom.width",
-                  "value": 125
-                }
-              ]
-            },
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "endsAt"
-              },
-              "properties": [
-                {
-                  "id": "unit",
-                  "value": "dateTimeFromNow"
-                },
-                {
-                  "id": "custom.width",
-                  "value": 111
-                }
-              ]
-            },
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "severity"
-              },
-              "properties": [
-                {
-                  "id": "custom.width",
-                  "value": 72
-                }
-              ]
-            },
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "alertname"
-              },
-              "properties": [
-                {
-                  "id": "custom.width",
-                  "value": 187
-                }
-              ]
-            },
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "duration"
-              },
-              "properties": [
-                {
-                  "id": "unit",
-                  "value": "ns"
-                },
-                {
-                  "id": "custom.width",
-                  "value": 121
-                }
-              ]
-            }
-          ]
-        },
-        "gridPos": {
-          "h": 7,
-          "w": 12,
-          "x": 12,
-          "y": 25
-        },
-        "id": 7,
-        "options": {
-          "cellHeight": "sm",
-          "footer": {
-            "countRows": false,
-            "fields": "",
-            "reducer": [
-              "sum"
-            ],
-            "show": false
-          },
-          "frameIndex": 0,
-          "showHeader": true,
-          "sortBy": []
-        },
-        "pluginVersion": "11.3.0-193362",
-        "targets": [
-          {
-            "datasource": {
-              "type": "loki",
-              "uid": "${loki_datasource}"
-            },
-            "editorMode": "builder",
-            "expr": "{app=\"alertsnitch\", alert_status=\"resolved\"} | json",
-            "queryType": "range",
-            "refId": "A"
-          }
-        ],
-        "title": "alert resolved",
-        "transformations": [
-          {
-            "id": "extractFields",
-            "options": {
-              "format": "auto",
-              "keepTime": false,
-              "replace": true,
-              "source": "labels"
-            }
-          },
-          {
-            "id": "groupBy",
-            "options": {
-              "fields": {
-                "Time": {
-                  "aggregations": [],
-                  "operation": "aggregate"
-                },
-                "alert_annotations_description": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_annotations_summary": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_endsAt": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_fingerprint": {
-                  "aggregations": [],
-                  "operation": "groupby"
-                },
-                "alert_generatorURL": {
-                  "aggregations": [],
-                  "operation": "aggregate"
-                },
-                "alert_labels_alertname": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_labels_severity": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_startsAt": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                }
-              }
-            }
-          },
-          {
-            "id": "organize",
-            "options": {
-              "excludeByName": {
-                "alert_fingerprint": true
-              },
-              "includeByName": {},
-              "indexByName": {
-                "alert_annotations_description (first)": 5,
-                "alert_annotations_summary (first)": 6,
-                "alert_endsAt (first)": 4,
-                "alert_fingerprint": 0,
-                "alert_labels_alertname (first)": 1,
-                "alert_labels_severity (first)": 2,
-                "alert_startsAt (first)": 3
-              },
-              "renameByName": {
-                "alert_annotations_description (first)": "description",
-                "alert_annotations_description (lastNotNull)": "description",
-                "alert_annotations_summary (first)": "summary",
-                "alert_annotations_summary (lastNotNull)": "summary",
-                "alert_endsAt (first)": "endsAt",
-                "alert_endsAt (lastNotNull)": "endsAt",
-                "alert_fingerprint": "",
-                "alert_labels_alertname (first)": "alertname",
-                "alert_labels_alertname (lastNotNull)": "alertname",
-                "alert_labels_severity (first)": "severity",
-                "alert_labels_severity (lastNotNull)": "severity",
-                "alert_startsAt (first)": "startsAt",
-                "alert_startsAt (lastNotNull)": "startsAt"
-              }
-            }
-          },
-          {
-            "id": "convertFieldType",
-            "options": {
-              "conversions": [
-                {
-                  "destinationType": "time",
-                  "targetField": "startsAt"
-                },
-                {
-                  "destinationType": "time",
-                  "targetField": "endsAt"
-                }
-              ],
-              "fields": {}
-            }
-          },
-          {
-            "id": "calculateField",
-            "options": {
-              "alias": "duration",
-              "binary": {
-                "left": "endsAt",
-                "right": "startsAt"
-              },
-              "mode": "binary",
-              "reduce": {
-                "reducer": "sum"
-              }
-            }
-          },
-          {
-            "id": "organize",
-            "options": {
-              "excludeByName": {},
-              "includeByName": {},
-              "indexByName": {
-                "alertname": 0,
-                "description": 5,
-                "duration": 4,
-                "endsAt": 3,
-                "severity": 1,
-                "startsAt": 2,
-                "summary": 6
-              },
-              "renameByName": {}
-            }
-          }
-        ],
-        "type": "table"
-      },
-      {
-        "datasource": {
-          "default": false,
-          "type": "loki",
-          "uid": "${loki_datasource}"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "thresholds"
-            },
-            "custom": {
-              "align": "left",
-              "cellOptions": {
-                "type": "auto"
-              },
-              "filterable": true,
-              "inspect": false
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 80
-                }
-              ]
-            }
-          },
-          "overrides": [
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "startsAt"
-              },
-              "properties": [
-                {
-                  "id": "custom.width",
-                  "value": 171
-                },
-                {
-                  "id": "mappings",
-                  "value": []
-                }
-              ]
-            },
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "endsAt"
-              },
-              "properties": [
-                {
-                  "id": "custom.width",
-                  "value": 168
-                },
-                {
-                  "id": "mappings",
-                  "value": [
-                    {
-                      "options": {
-                        "0001-01-01T00:00:00Z": {
-                          "index": 0,
-                          "text": "N/A"
-                        }
-                      },
-                      "type": "value"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "severity"
-              },
-              "properties": [
-                {
-                  "id": "custom.width",
-                  "value": 72
-                }
-              ]
-            },
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "alertname"
-              },
-              "properties": [
-                {
-                  "id": "custom.width",
-                  "value": 187
-                }
-              ]
-            },
-            {
-              "matcher": {
-                "id": "byName",
-                "options": "status"
-              },
-              "properties": [
-                {
-                  "id": "custom.width",
-                  "value": 78
-                }
-              ]
-            }
-          ]
-        },
-        "gridPos": {
-          "h": 14,
-          "w": 24,
-          "x": 0,
-          "y": 32
-        },
-        "id": 9,
-        "options": {
-          "cellHeight": "sm",
-          "footer": {
-            "countRows": false,
-            "fields": "",
-            "reducer": [
-              "sum"
-            ],
-            "show": false
-          },
-          "frameIndex": 0,
-          "showHeader": true,
-          "sortBy": []
-        },
-        "pluginVersion": "11.3.0-193362",
-        "targets": [
-          {
-            "datasource": {
-              "type": "loki",
-              "uid": "${loki_datasource}"
-            },
-            "editorMode": "builder",
-            "expr": "{app=\"alertsnitch\"} | json",
-            "queryType": "range",
-            "refId": "A"
-          }
-        ],
-        "title": "history alert details",
-        "transformations": [
-          {
-            "id": "extractFields",
-            "options": {
-              "format": "auto",
-              "keepTime": false,
-              "replace": true,
-              "source": "labels"
-            }
-          },
-          {
-            "id": "groupBy",
-            "options": {
-              "fields": {
-                "Time": {
-                  "aggregations": [],
-                  "operation": "aggregate"
-                },
-                "alert_annotations_description": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_annotations_summary": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_endsAt": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_fingerprint": {
-                  "aggregations": [],
-                  "operation": "groupby"
-                },
-                "alert_generatorURL": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_labels_alertname": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_labels_instance": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_labels_severity": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_startsAt": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "alert_status": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                },
-                "receiver": {
-                  "aggregations": [
-                    "first"
-                  ],
-                  "operation": "aggregate"
-                }
-              }
-            }
-          },
-          {
-            "disabled": true,
-            "id": "filterByValue",
-            "options": {
-              "filters": [
-                {
-                  "config": {
-                    "id": "equal",
-                    "options": {
-                      "value": "0001-01-01T00:00:00Z"
-                    }
-                  },
-                  "fieldName": "alert_endsAt (first)"
-                }
-              ],
-              "match": "all",
-              "type": "include"
-            }
-          },
-          {
-            "id": "organize",
-            "options": {
-              "excludeByName": {
-                "alert_endsAt (first)": false,
-                "alert_fingerprint": true
-              },
-              "includeByName": {},
-              "indexByName": {
-                "alert_annotations_description (first)": 7,
-                "alert_annotations_summary (first)": 6,
-                "alert_endsAt (first)": 5,
-                "alert_fingerprint": 0,
-                "alert_labels_alertname (first)": 1,
-                "alert_labels_instance (first)": 8,
-                "alert_labels_severity (first)": 2,
-                "alert_startsAt (first)": 4,
-                "alert_status (first)": 3,
-                "receiver (first)": 9
-              },
-              "renameByName": {
-                "alert_annotations_description (first)": "description",
-                "alert_annotations_description (lastNotNull)": "description",
-                "alert_annotations_summary (first)": "summary",
-                "alert_annotations_summary (lastNotNull)": "summary",
-                "alert_endsAt (first)": "endsAt",
-                "alert_endsAt (lastNotNull)": "endsAt",
-                "alert_fingerprint": "",
-                "alert_generatorURL (first)": "generatorURL",
-                "alert_labels_alertname (first)": "alertname",
-                "alert_labels_alertname (lastNotNull)": "alertname",
-                "alert_labels_instance (first)": "instance",
-                "alert_labels_severity (first)": "severity",
-                "alert_labels_severity (lastNotNull)": "severity",
-                "alert_startsAt (first)": "startsAt",
-                "alert_startsAt (lastNotNull)": "startsAt",
-                "alert_status (first)": "status",
-                "receiver (first)": "receiver"
-              }
-            }
-          }
-        ],
-        "type": "table"
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
       }
-    ],
-    "schemaVersion": 39,
-    "tags": [],
-    "templating": {
-      "list": [
-        {
-          "current": {
-            "selected": false,
-            "text": "prometheus",
-            "value": "edwaj9in0rl6oa"
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 54,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "default": false,
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
           },
-          "hide": 0,
-          "includeAll": false,
-          "label": "datasource",
-          "multi": false,
-          "name": "datasource",
-          "options": [],
-          "query": "prometheus",
-          "queryValue": "",
-          "refresh": 1,
-          "regex": "",
-          "skipUrlSync": false,
-          "type": "datasource"
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 11,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "pluginVersion": "11.3.0-193362",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "disableTextWrap": false,
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "topk(20, (sum by (alertname) (changes(ALERTS_FOR_STATE[$__range]) AND ignoring(alertstate) max_over_time(ALERTS{alertstate=\"firing\"}[$__range])) + (count by (alertname) (changes(ALERTS_FOR_STATE[$__range]) AND ignoring(alertstate) max_over_time(ALERTS{alertstate=\"firing\"}[$__range])) * 1)))",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Top 20 triggered Alerts",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "fieldMinMax": false,
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "warning"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "info"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "critical"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 12,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "values": []
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "editorMode": "builder",
+          "expr": "count by(severity) (count_over_time({app=\"alertsnitch\"} |= `` [$__range]))",
+          "legendFormat": "{{severity}}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Triggered Alerts by Severity",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "fieldMinMax": false,
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "warning"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "info"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "critical"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 13,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "values": []
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "editorMode": "builder",
+          "expr": "count by(priority) (count_over_time({app=\"alertsnitch\"} |= `` [$__range]))",
+          "legendFormat": "{{severity}}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Triggered Alerts by Priority",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{app=\"alertsnitch\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 5,
+        "x": 0,
+        "y": 11
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.3.0-193362",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "editorMode": "builder",
+          "expr": "sum by(app) (count_over_time({app=\"alertsnitch\", alert_status=\"firing\"} [$__range]))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "total number of alert sent",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 7,
+        "x": 5,
+        "y": 11
+      },
+      "id": 2,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.3.0-193362",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "editorMode": "builder",
+          "expr": "sum by(severity) (count_over_time({app=\"alertsnitch\", alert_status=\"firing\"} [$__range]))",
+          "legendFormat": "{{serverity}}",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "alert statistics",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "Value #A": "count",
+              "severity": ""
+            }
+          }
         },
         {
-          "current": {
-            "selected": false,
-            "text": "Loki",
-            "value": "P8E80F9AEF21F6940"
-          },
-          "hide": 0,
-          "includeAll": false,
-          "label": "loki_datasource",
-          "multi": false,
-          "name": "loki_datasource",
-          "options": [],
-          "query": "loki",
-          "queryValue": "",
-          "refresh": 1,
-          "regex": "",
-          "skipUrlSync": false,
-          "type": "datasource"
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "severity"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "type": "table"
     },
-    "time": {
-      "from": "now-2d",
-      "to": "now"
+    {
+      "datasource": {
+        "default": false,
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 5,
+        "x": 12,
+        "y": 11
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.3.0-193362",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "editorMode": "builder",
+          "expr": "sum by(app) (count_over_time({app=\"alertsnitch\", alert_status=\"resolved\"} [$__range]))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "total number of alert resolved",
+      "type": "stat"
     },
-    "timepicker": {},
-    "timezone": "browser",
-    "title": "Loki / AlertManager History",
-    "uid": "ce0vodknf2kn4f",
-    "version": 36,
-    "weekStart": ""
-  }
+    {
+      "datasource": {
+        "default": false,
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 7,
+        "x": 17,
+        "y": 11
+      },
+      "id": 4,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.3.0-193362",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "editorMode": "builder",
+          "expr": "sum by(severity) (count_over_time({app=\"alertsnitch\", alert_status=\"resolved\"} [$__range]))",
+          "legendFormat": "{{serverity}}",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "resolved statistics",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "Value #A": "count",
+              "severity": ""
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "severity"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-BlYlRd"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.8,
+            "drawStyle": "bars",
+            "fillOpacity": 100,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 10,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
+      "id": 5,
+      "maxDataPoints": 100,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "editorMode": "builder",
+          "expr": "sum by(app, severity) (count_over_time({app=\"alertsnitch\", alert_status=\"firing\"} [$__auto]))",
+          "legendFormat": "alert triggered count: {{severity}}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "alert triggered",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-BlYlRd",
+            "seriesBy": "last"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.8,
+            "drawStyle": "bars",
+            "fillOpacity": 100,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 10,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      },
+      "id": 6,
+      "maxDataPoints": 100,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "editorMode": "builder",
+          "expr": "sum by(app, severity) (count_over_time({app=\"alertsnitch\", alert_status=\"resolved\"} [$__auto]))",
+          "legendFormat": "alert triggered count: {{severity}}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "resolved triggered",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "startsAt"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              },
+              {
+                "id": "custom.width",
+                "value": 85
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "endsAt"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              },
+              {
+                "id": "custom.width",
+                "value": 84
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "severity"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 72
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "alertname"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 187
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "id": 8,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "11.3.0-193362",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "editorMode": "builder",
+          "expr": "{app=\"alertsnitch\"} | json",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "alert not resolved",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "auto",
+            "keepTime": false,
+            "replace": true,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "Time": {
+                "aggregations": [],
+                "operation": "aggregate"
+              },
+              "alert_annotations_description": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_annotations_summary": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_endsAt": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_fingerprint": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "alert_generatorURL": {
+                "aggregations": [],
+                "operation": "aggregate"
+              },
+              "alert_labels_alertname": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_labels_severity": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_startsAt": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              }
+            }
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "equal",
+                  "options": {
+                    "value": "0001-01-01T00:00:00Z"
+                  }
+                },
+                "fieldName": "alert_endsAt (first)"
+              }
+            ],
+            "match": "all",
+            "type": "include"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "alert_endsAt (first)": true,
+              "alert_fingerprint": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "alert_annotations_description (first)": 6,
+              "alert_annotations_summary (first)": 5,
+              "alert_endsAt (first)": 4,
+              "alert_fingerprint": 0,
+              "alert_labels_alertname (first)": 1,
+              "alert_labels_severity (first)": 2,
+              "alert_startsAt (first)": 3
+            },
+            "renameByName": {
+              "alert_annotations_description (first)": "description",
+              "alert_annotations_description (lastNotNull)": "description",
+              "alert_annotations_summary (first)": "summary",
+              "alert_annotations_summary (lastNotNull)": "summary",
+              "alert_endsAt (first)": "endsAt",
+              "alert_endsAt (lastNotNull)": "endsAt",
+              "alert_fingerprint": "",
+              "alert_labels_alertname (first)": "alertname",
+              "alert_labels_alertname (lastNotNull)": "alertname",
+              "alert_labels_severity (first)": "severity",
+              "alert_labels_severity (lastNotNull)": "severity",
+              "alert_startsAt (first)": "startsAt",
+              "alert_startsAt (lastNotNull)": "startsAt"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "startsAt"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              },
+              {
+                "id": "custom.width",
+                "value": 125
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "endsAt"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              },
+              {
+                "id": "custom.width",
+                "value": 111
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "severity"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 72
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "alertname"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 187
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ns"
+              },
+              {
+                "id": "custom.width",
+                "value": 121
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 25
+      },
+      "id": 7,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "11.3.0-193362",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "editorMode": "builder",
+          "expr": "{app=\"alertsnitch\", alert_status=\"resolved\"} | json",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "alert resolved",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "auto",
+            "keepTime": false,
+            "replace": true,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "Time": {
+                "aggregations": [],
+                "operation": "aggregate"
+              },
+              "alert_annotations_description": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_annotations_summary": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_endsAt": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_fingerprint": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "alert_generatorURL": {
+                "aggregations": [],
+                "operation": "aggregate"
+              },
+              "alert_labels_alertname": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_labels_severity": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_startsAt": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              }
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "alert_fingerprint": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "alert_annotations_description (first)": 5,
+              "alert_annotations_summary (first)": 6,
+              "alert_endsAt (first)": 4,
+              "alert_fingerprint": 0,
+              "alert_labels_alertname (first)": 1,
+              "alert_labels_severity (first)": 2,
+              "alert_startsAt (first)": 3
+            },
+            "renameByName": {
+              "alert_annotations_description (first)": "description",
+              "alert_annotations_description (lastNotNull)": "description",
+              "alert_annotations_summary (first)": "summary",
+              "alert_annotations_summary (lastNotNull)": "summary",
+              "alert_endsAt (first)": "endsAt",
+              "alert_endsAt (lastNotNull)": "endsAt",
+              "alert_fingerprint": "",
+              "alert_labels_alertname (first)": "alertname",
+              "alert_labels_alertname (lastNotNull)": "alertname",
+              "alert_labels_severity (first)": "severity",
+              "alert_labels_severity (lastNotNull)": "severity",
+              "alert_startsAt (first)": "startsAt",
+              "alert_startsAt (lastNotNull)": "startsAt"
+            }
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "destinationType": "time",
+                "targetField": "startsAt"
+              },
+              {
+                "destinationType": "time",
+                "targetField": "endsAt"
+              }
+            ],
+            "fields": {}
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "duration",
+            "binary": {
+              "left": "endsAt",
+              "right": "startsAt"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {
+              "alertname": 0,
+              "description": 5,
+              "duration": 4,
+              "endsAt": 3,
+              "severity": 1,
+              "startsAt": 2,
+              "summary": 6
+            },
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "startsAt"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 171
+              },
+              {
+                "id": "mappings",
+                "value": []
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "endsAt"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 168
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "0001-01-01T00:00:00Z": {
+                        "index": 0,
+                        "text": "N/A"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "severity"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 72
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "alertname"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 187
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 78
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "id": 9,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "11.3.0-193362",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "editorMode": "builder",
+          "expr": "{app=\"alertsnitch\"} | json",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "history alert details",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "auto",
+            "keepTime": false,
+            "replace": true,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "Time": {
+                "aggregations": [],
+                "operation": "aggregate"
+              },
+              "alert_annotations_description": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_annotations_summary": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_endsAt": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_fingerprint": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "alert_generatorURL": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_labels_alertname": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_labels_instance": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_labels_severity": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_startsAt": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_status": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "receiver": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              }
+            }
+          }
+        },
+        {
+          "disabled": true,
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "equal",
+                  "options": {
+                    "value": "0001-01-01T00:00:00Z"
+                  }
+                },
+                "fieldName": "alert_endsAt (first)"
+              }
+            ],
+            "match": "all",
+            "type": "include"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "alert_endsAt (first)": false,
+              "alert_fingerprint": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "alert_annotations_description (first)": 7,
+              "alert_annotations_summary (first)": 6,
+              "alert_endsAt (first)": 5,
+              "alert_fingerprint": 0,
+              "alert_labels_alertname (first)": 1,
+              "alert_labels_instance (first)": 8,
+              "alert_labels_severity (first)": 2,
+              "alert_startsAt (first)": 4,
+              "alert_status (first)": 3,
+              "receiver (first)": 9
+            },
+            "renameByName": {
+              "alert_annotations_description (first)": "description",
+              "alert_annotations_description (lastNotNull)": "description",
+              "alert_annotations_summary (first)": "summary",
+              "alert_annotations_summary (lastNotNull)": "summary",
+              "alert_endsAt (first)": "endsAt",
+              "alert_endsAt (lastNotNull)": "endsAt",
+              "alert_fingerprint": "",
+              "alert_generatorURL (first)": "generatorURL",
+              "alert_labels_alertname (first)": "alertname",
+              "alert_labels_alertname (lastNotNull)": "alertname",
+              "alert_labels_instance (first)": "instance",
+              "alert_labels_severity (first)": "severity",
+              "alert_labels_severity (lastNotNull)": "severity",
+              "alert_startsAt (first)": "startsAt",
+              "alert_startsAt (lastNotNull)": "startsAt",
+              "alert_status (first)": "status",
+              "receiver (first)": "receiver"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "startsAt"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": []
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "endsAt"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "0001-01-01T00:00:00Z": {
+                        "index": 0,
+                        "text": "N/A"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "severity"
+            },
+            "properties": []
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "alertname"
+            },
+            "properties": []
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": []
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "alert_endsAt"
+            },
+            "properties": []
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      },
+      "id": 14,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.3.0-193362",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "editorMode": "builder",
+          "expr": "{app=\"alertsnitch\", alert_status=\"resolved\"} | json",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "MTTR",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "auto",
+            "keepTime": false,
+            "replace": true,
+            "source": "labels"
+          }
+        },
+        {
+          "disabled": true,
+          "id": "filterByValue",
+          "options": {
+            "filters": [],
+            "match": "all",
+            "type": "include"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "alert_annotations_description": true,
+              "alert_annotations_summary": true,
+              "alert_endsAt": false,
+              "alert_endsAt (first)": false,
+              "alert_fingerprint": true,
+              "alert_generatorURL": true,
+              "alert_labels_alertname": true,
+              "alert_labels_instance": true,
+              "alert_labels_severity": true,
+              "alert_status": true,
+              "alert_status_extracted": true,
+              "app": false,
+              "commonAnnotations_summary": true,
+              "commonLabels_alertname": true,
+              "commonLabels_severity": true,
+              "externalURL": true,
+              "groupKey": true,
+              "groupLabels_alertname": true,
+              "level": true,
+              "receiver": true,
+              "receiver_extracted": true,
+              "service_name": true,
+              "severity": true,
+              "status": true,
+              "status_extracted": true,
+              "version": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "alert_annotations_description (first)": 7,
+              "alert_annotations_summary (first)": 6,
+              "alert_endsAt (first)": 5,
+              "alert_fingerprint": 0,
+              "alert_labels_alertname (first)": 1,
+              "alert_labels_instance (first)": 8,
+              "alert_labels_severity (first)": 2,
+              "alert_startsAt (first)": 4,
+              "alert_status (first)": 3,
+              "receiver (first)": 9
+            },
+            "renameByName": {
+              "alert_annotations_description (first)": "description",
+              "alert_annotations_description (lastNotNull)": "description",
+              "alert_annotations_summary (first)": "summary",
+              "alert_annotations_summary (lastNotNull)": "summary",
+              "alert_endsAt": "endsAt",
+              "alert_endsAt (first)": "endsAt",
+              "alert_endsAt (lastNotNull)": "endsAt",
+              "alert_fingerprint": "",
+              "alert_generatorURL (first)": "generatorURL",
+              "alert_labels_alertname (first)": "alertname",
+              "alert_labels_alertname (lastNotNull)": "alertname",
+              "alert_labels_instance (first)": "instance",
+              "alert_labels_severity (first)": "severity",
+              "alert_labels_severity (lastNotNull)": "severity",
+              "alert_startsAt": "startsAt",
+              "alert_startsAt (first)": "startsAt",
+              "alert_startsAt (lastNotNull)": "startsAt",
+              "alert_status (first)": "status",
+              "receiver (first)": "receiver"
+            }
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "destinationType": "time",
+                "targetField": "endsAt"
+              },
+              {
+                "destinationType": "time",
+                "targetField": "startsAt"
+              }
+            ],
+            "fields": {}
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "duration",
+            "binary": {
+              "left": "endsAt",
+              "operator": "-",
+              "right": "startsAt"
+            },
+            "mode": "binary",
+            "reduce": {
+              "include": [
+                "endsAt"
+              ],
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "duration"
+              ],
+              "reducer": "mean"
+            }
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "Time": {
+                "aggregations": [],
+                "operation": "aggregate"
+              },
+              "alert_annotations_description": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_annotations_summary": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_endsAt": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_fingerprint": {
+                "aggregations": []
+              },
+              "alert_generatorURL": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_labels_alertname": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_labels_instance": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_labels_severity": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_startsAt": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "alert_status": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "app": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "duration": {
+                "aggregations": [
+                  "mean"
+                ],
+                "operation": "aggregate"
+              },
+              "receiver": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              }
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "app": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "stat"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "prometheus",
+          "value": "edwaj9in0rl6oa"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "datasource",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "Loki",
+          "value": "P8E80F9AEF21F6940"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "loki_datasource",
+        "multi": false,
+        "name": "loki_datasource",
+        "options": [],
+        "query": "loki",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "datasource": {
+          "type": "loki",
+          "uid": "${loki_datasource}"
+        },
+        "filters": [],
+        "hide": 0,
+        "name": "filters",
+        "skipUrlSync": false,
+        "type": "adhoc"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-2d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Loki / AlertManager History",
+  "uid": "ce0vodknf2kn4f",
+  "version": 38,
+  "weekStart": ""
+}
