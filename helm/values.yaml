@@ -36,3 +36,17 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  # - host: alertsnitch.local
+  #   paths:
+  #     - path: /
+  #       pathType: Prefix
+  tls: []
+  #  - secretName: alertsnitch-tls
+  #    hosts:
+  #      - alertsnitch.local
