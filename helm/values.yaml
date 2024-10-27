@@ -1,0 +1,38 @@
+fullname: alertsnitch
+
+image:
+  repository: mikehsu0618/alertsnitch
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 9567
+
+env:
+  ALERTSNITCH_ADDR: ":9567"
+  ALERTSNITCH_DEBUG: "true"
+  ALERTSNITCH_BACKEND: "loki"
+  ALERTSNITCH_BACKEND_ENPOINT: "http://loki-gateway.loki"
+  ALERTSNITCH_LOKI_TENANT_ID: ""
+
+secret:
+  create: false
+  data:
+    ALERTSNITCH_LOKI_BASIC_AUTH_USER: ""
+    ALERTSNITCH_LOKI_BASIC_AUTH_PASSWORD: ""
+
+replicaCount: 1
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
