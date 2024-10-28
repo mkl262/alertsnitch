@@ -156,16 +156,16 @@ func (c *lokiClient) setAuthAndTenantHeaders(req *http.Request) {
 func (c *lokiClient) Save(ctx context.Context, data *internal.AlertGroup) error {
 	queryParams := middleware.GetQueryParameters(ctx)
 	logrus.Debugf("Query parameters: %v", queryParams)
-	s, err := c.dataToStream(data, queryParams)
+
+	streams, err := c.dataToStream(data, queryParams)
 	if err != nil {
 		return fmt.Errorf("error converting data to stream: %w", err)
 	}
-
+	
 	payload := payload{
-		Streams: []stream{s},
+		Streams: streams,
 	}
 	payloadBytes, err := json.Marshal(payload)
-
 	logrus.Debugf("Loki request payload: %v", string(payloadBytes))
 
 	if err != nil {
@@ -211,35 +211,60 @@ func (c *lokiClient) CheckModel() error {
 	return nil
 }
 
-func (c *lokiClient) dataToStream(data *internal.AlertGroup, extraLabels map[string]string) (stream, error) {
-	stream := stream{}
-	stream.Stream = c.getStreamLabels(data, extraLabels)
-
-	for _, alert := range data.Alerts {
-		flattenGroup := internal.FlattenAlertGroup{
-			Version:           data.Version,
-			GroupKey:          data.GroupKey,
-			Receiver:          data.Receiver,
-			Status:            data.Status,
-			Alert:             alert,
-			GroupLabels:       data.GroupLabels,
-			CommonLabels:      data.CommonLabels,
-			CommonAnnotations: data.CommonAnnotations,
-			ExternalURL:       data.ExternalURL,
-		}
-
-		jsonData, err := json.Marshal(flattenGroup)
-		if err != nil {
-			return stream, fmt.Errorf("error marshalling FlattenAlertGroup: %w", err)
-		}
-
-		stream.Values = append(stream.Values, row{
-			At:  time.Now(),
-			Val: string(jsonData),
-		})
+func cloneLabels(labels map[string]string) map[string]string {
+	clone := make(map[string]string, len(labels))
+	for k, v := range labels {
+		clone[k] = v
 	}
+	return clone
+}
 
-	return stream, nil
+func (c *lokiClient) dataToStream(data *internal.AlertGroup, extraLabels map[string]string) ([]stream, error) {
+	alertsByStatus := make(map[string][]internal.Alert)
+	for _, alert := range data.Alerts {
+		alertsByStatus[alert.Status] = append(alertsByStatus[alert.Status], alert)
+	}
+	
+	baseLabels := c.getStreamLabels(data, extraLabels)
+	
+	var streams []stream
+	for status, alerts := range alertsByStatus {
+		streamLabels := cloneLabels(baseLabels)
+		streamLabels["alert_status"] = status
+		
+		s := stream{
+			Stream: streamLabels,
+			Values: make([]row, 0, len(alerts)),
+		}
+		
+		for _, alert := range alerts {
+			flattenGroup := internal.FlattenAlertGroup{
+				Version:           data.Version,
+				GroupKey:         data.GroupKey,
+				Receiver:         data.Receiver,
+				Status:           data.Status,
+				Alert:            alert,
+				GroupLabels:      data.GroupLabels,
+				CommonLabels:     data.CommonLabels,
+				CommonAnnotations: data.CommonAnnotations,
+				ExternalURL:      data.ExternalURL,
+			}
+			
+			jsonData, err := json.Marshal(flattenGroup)
+			if err != nil {
+				return nil, fmt.Errorf("error marshalling FlattenAlertGroup: %w", err)
+			}
+			
+			s.Values = append(s.Values, row{
+				At:  time.Now(),
+				Val: string(jsonData),
+			})
+		}
+		
+		streams = append(streams, s)
+	}
+	
+	return streams, nil
 }
 
 var additionalLabels = map[string]string{
@@ -280,11 +305,8 @@ func (c *lokiClient) getStreamLabels(data *internal.AlertGroup, extraLabels map[
 		}
 	}
 
-	for _, alert := range data.Alerts {
-		streamLabels["alert_status"] = alert.Status
-	}
 
-	streamLabels["app"] = "alertsnitch"
+	// streamLabels["app"] = "alertsnitch" // TBD if we need use label "app"
 	streamLabels["receiver"] = data.Receiver
 	streamLabels["status"] = data.Status
 
