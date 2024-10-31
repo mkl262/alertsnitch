@@ -729,7 +729,31 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "severity"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "match": "empty",
+                      "result": {
+                        "index": 1,
+                        "text": "null"
+                      }
+                    },
+                    "type": "special"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 6,
@@ -894,7 +918,31 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "severity"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "match": "empty",
+                      "result": {
+                        "index": 1,
+                        "text": "null"
+                      }
+                    },
+                    "type": "special"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 6,
@@ -1243,30 +1291,6 @@
                 "value": {
                   "fixedColor": "yellow",
                   "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "critical"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": true
                 }
               }
             ]
@@ -2481,8 +2505,8 @@
     "list": [
       {
         "current": {
-          "text": "loki",
-          "value": "loki"
+          "text": "loki-sporty-pub-uat-misc",
+          "value": "loki-sporty-pub-uat-misc"
         },
         "includeAll": false,
         "label": "loki_datasource",
@@ -2527,9 +2551,9 @@
     "to": "now"
   },
   "timepicker": {},
-  "timezone": "browser",
-  "title": "Loki / AlertManager History",
+  "timezone": "",
+  "title": "Loki / Alert History",
   "uid": "ce0vodknf2kn4f",
-  "version": 46,
+  "version": 48,
   "weekStart": ""
 }
