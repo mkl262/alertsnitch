@@ -1,4 +1,4 @@
-> [!IMPORTANT] Credits
+> [!IMPORTANT]
 > This project is a fork of [yakshaving.art/alertsnitch](https://gitlab.com/yakshaving.art/alertsnitch) which was last updated in 2020. We've added Loki support while maintaining the original project's spirit of making alert history queryable.
 
 # AlertSnitch
