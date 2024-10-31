@@ -64,7 +64,7 @@
         "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [],
-          "fields": "/^alert_status \\(count\\)$/",
+          "fields": "",
           "limit": 10,
           "values": true
         },
@@ -79,9 +79,9 @@
             "type": "loki",
             "uid": "${loki_datasource}"
           },
-          "editorMode": "code",
-          "expr": "{alert_status=\"firing\"} |= `$content_filter` | json alertname=\"alert.labels.alertname\"",
-          "legendFormat": "{{alertname}}",
+          "editorMode": "builder",
+          "expr": "{alert_status=\"firing\"} |= `$content_filter` | json alertname=\"alert.labels.alertname\", fingerprint=\"alert.fingerprint\", startsAt=\"alert.startsAt\"",
+          "legendFormat": "",
           "queryType": "range",
           "refId": "A"
         }
@@ -91,7 +91,8 @@
         {
           "id": "extractFields",
           "options": {
-            "keepTime": false,
+            "format": "auto",
+            "keepTime": true,
             "replace": true,
             "source": "labels"
           }
@@ -100,18 +101,49 @@
           "id": "groupBy",
           "options": {
             "fields": {
+              "Time": {
+                "aggregations": []
+              },
               "alert_status": {
-                "aggregations": [
-                  "count"
-                ],
-                "operation": "aggregate"
+                "aggregations": []
               },
               "alertname": {
                 "aggregations": [],
                 "operation": "groupby"
               },
+              "fingerprint": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "receiver": {
+                "aggregations": []
+              },
+              "startsAt": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
               "status": {
                 "aggregations": []
+              }
+            }
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "alert_status (count)": {
+                "aggregations": []
+              },
+              "alertname": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "fingerprint": {
+                "aggregations": [
+                  "count"
+                ],
+                "operation": "aggregate"
               }
             }
           }
@@ -123,7 +155,7 @@
             "sort": [
               {
                 "desc": true,
-                "field": "alert_status (count)"
+                "field": "fingerprint (count)"
               }
             ]
           }
@@ -156,7 +188,7 @@
               }
             ]
           },
-          "unit": "dtdurationms"
+          "unit": "ms"
         },
         "overrides": []
       },
@@ -193,27 +225,13 @@
             "uid": "${loki_datasource}"
           },
           "editorMode": "code",
-          "expr": "{alert_status=\"resolved\"} |= \"$content_filter\" | json endsAt=\"alert.endsAt\", startsAt=\"alert.startsAt\"",
-          "queryType": "range",
+          "expr": "sum by(alertname, startsAt, endsAt, fingerprint) (count_over_time({alert_status=\"resolved\"} |= `$content_filter` | json endsAt=\"alert.endsAt\", startsAt=\"alert.startsAt\", alertname=\"alert.labels.alertname\", fingerprint=\"alert.fingerprint\" [$__range]))",
+          "queryType": "instant",
           "refId": "A"
         }
       ],
-      "title": "Average Mean time to resolved (MTTR)",
+      "title": "Average Mean time to Resolved (MTTR)",
       "transformations": [
-        {
-          "id": "extractFields",
-          "options": {
-            "format": "auto",
-            "jsonPaths": [
-              {
-                "path": ""
-              }
-            ],
-            "keepTime": false,
-            "replace": true,
-            "source": "labels"
-          }
-        },
         {
           "id": "convertFieldType",
           "options": {
@@ -260,7 +278,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "mode": "palette-classic-by-name"
           },
           "custom": {
             "hideFrom": {
@@ -270,7 +288,29 @@
             }
           },
           "fieldMinMax": false,
-          "mappings": []
+          "mappings": [
+            {
+              "options": {
+                "critical": {
+                  "color": "red",
+                  "index": 2
+                },
+                "info": {
+                  "color": "green",
+                  "index": 0
+                },
+                "none": {
+                  "color": "text",
+                  "index": 3
+                },
+                "warning": {
+                  "color": "yellow",
+                  "index": 1
+                }
+              },
+              "type": "value"
+            }
+          ]
         },
         "overrides": [
           {
@@ -283,6 +323,21 @@
                 "id": "color",
                 "value": {
                   "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "none"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "text",
                   "mode": "fixed"
                 }
               }
@@ -317,6 +372,29 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "severity (first)"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "match": "empty",
+                      "result": {
+                        "index": 1,
+                        "text": "null"
+                      }
+                    },
+                    "type": "special"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -342,11 +420,9 @@
         },
         "pieType": "pie",
         "reduceOptions": {
-          "calcs": [
-            "firstNotNull"
-          ],
+          "calcs": [],
           "fields": "",
-          "values": false
+          "values": true
         },
         "tooltip": {
           "mode": "multi",
@@ -361,13 +437,73 @@
             "uid": "${loki_datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by(severity) (count_over_time({alert_status=~\".+\"} |= \"$content_filter\" [$__range]))",
+          "expr": "sum(count_over_time({alert_status=\"firing\"} |= \"$content_filter\" | json alertname=\"alert.labels.alertname\", fingerprint=\"alert.fingerprint\", startsAt=\"alert.startsAt\" [$__range])) by (alertname, fingerprint, startsAt, severity)",
           "legendFormat": "{{severity}}",
-          "queryType": "range",
+          "queryType": "instant",
           "refId": "A"
         }
       ],
       "title": "Triggered Alerts by Severity",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "replace": true,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "alert_status": {
+                "aggregations": []
+              },
+              "alertname": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "fingerprint": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "severity": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "startsAt": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "status": {
+                "aggregations": []
+              }
+            }
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "alertname": {
+                "aggregations": []
+              },
+              "fingerprint": {
+                "aggregations": [
+                  "count"
+                ],
+                "operation": "aggregate"
+              },
+              "severity (first)": {
+                "aggregations": [],
+                "operation": "groupby"
+              }
+            }
+          }
+        }
+      ],
       "type": "piechart"
     },
     {
@@ -391,7 +527,32 @@
           "fieldMinMax": false,
           "mappings": []
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "priority"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "match": "empty",
+                      "result": {
+                        "color": "text",
+                        "index": 0,
+                        "text": "null"
+                      }
+                    },
+                    "type": "special"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 9,
@@ -417,11 +578,9 @@
         },
         "pieType": "pie",
         "reduceOptions": {
-          "calcs": [
-            "firstNotNull"
-          ],
+          "calcs": [],
           "fields": "",
-          "values": false
+          "values": true
         },
         "tooltip": {
           "maxWidth": -1,
@@ -437,13 +596,42 @@
             "uid": "${loki_datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by(priority) (count_over_time({alert_status=~\".+\"} |= \"$content_filter\" [$__range]))",
+          "expr": "count(sum(count_over_time({alert_status=\"firing\"} |= \"$content_filter\"  | json alertname=\"alert.labels.alertname\", fingerprint=\"alert.fingerprint\", startsAt=\"alert.startsAt\" [$__range])) by (alertname, fingerprint, startsAt, priority)) by (priority)",
           "legendFormat": "{{severity}}",
-          "queryType": "range",
+          "queryType": "instant",
           "refId": "A"
         }
       ],
       "title": "Triggered Alerts by Priority",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": false
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "fingerprint": "value",
+              "fingerprint (count)": "none",
+              "priority (first)": ""
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "Value #A"
+              }
+            ]
+          }
+        }
+      ],
       "type": "piechart"
     },
     {
@@ -484,9 +672,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": [],
           "fields": "",
           "values": false
         },
@@ -502,7 +688,7 @@
             "uid": "${loki_datasource}"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({alert_status=\"firing\"} |= \"$content_filter\" [$__range]))",
+          "expr": "count(sum(count_over_time({alert_status=\"firing\"} |= \"$content_filter\" | json alertname=\"alert.labels.alertname\", fingerprint=\"alert.fingerprint\", startsAt=\"alert.startsAt\" [$__range])) by (alertname, fingerprint, startsAt))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -563,12 +749,7 @@
           "show": false
         },
         "showHeader": true,
-        "sortBy": [
-          {
-            "desc": true,
-            "displayName": "count"
-          }
-        ]
+        "sortBy": []
       },
       "pluginVersion": "11.2.0",
       "targets": [
@@ -578,8 +759,8 @@
             "uid": "${loki_datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by(severity) (count_over_time({alert_status=\"firing\"} |= \"$content_filter\" [$__range]))",
-          "legendFormat": "{{serverity}}",
+          "expr": "count (sum(count_over_time({alert_status=\"firing\"} |= \"$content_filter\" | json alertname=\"alert.labels.alertname\", fingerprint=\"alert.fingerprint\", startsAt=\"alert.startsAt\" [$__range])) by (alertname, fingerprint, startsAt, severity)) by (severity)",
+          "legendFormat": "{{severity}}",
           "queryType": "instant",
           "refId": "A"
         }
@@ -596,6 +777,7 @@
             "indexByName": {},
             "renameByName": {
               "Value #A": "count",
+              "fingerprint (count)": "count",
               "severity": ""
             }
           }
@@ -606,8 +788,8 @@
             "fields": {},
             "sort": [
               {
-                "desc": false,
-                "field": "severity"
+                "desc": true,
+                "field": "count"
               }
             ]
           }
@@ -655,11 +837,9 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": [],
           "fields": "",
-          "values": false
+          "values": true
         },
         "showPercentChange": false,
         "textMode": "auto",
@@ -673,7 +853,7 @@
             "uid": "${loki_datasource}"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({alert_status=\"resolved\"} |= \"$content_filter\" [$__range]))",
+          "expr": "count(sum by(alertname, startsAt, fingerprint) (count_over_time({alert_status=\"resolved\"} |= `$content_filter` | json startsAt=\"alert.startsAt\", alertname=\"alert.labels.alertname\", fingerprint=\"alert.fingerprint\" [$__range])))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -749,7 +929,7 @@
             "uid": "${loki_datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by(severity) (count_over_time({alert_status=\"resolved\"} |= \"$content_filter\" [$__range]))",
+          "expr": "count(sum by(alertname, startsAt, fingerprint, severity) (count_over_time({alert_status=\"resolved\"} |= `$content_filter` | json startsAt=\"alert.startsAt\", alertname=\"alert.labels.alertname\", fingerprint=\"alert.fingerprint\" [$__range]))) by (severity)",
           "legendFormat": "{{serverity}}",
           "queryType": "instant",
           "refId": "A"
@@ -767,7 +947,8 @@
             "indexByName": {},
             "renameByName": {
               "Value #A": "count",
-              "severity": ""
+              "fingerprint (count)": "count",
+              "severity (first)": "severity"
             }
           }
         },
@@ -778,7 +959,7 @@
             "sort": [
               {
                 "desc": false,
-                "field": "severity"
+                "field": "count"
               }
             ]
           }
@@ -849,7 +1030,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "alert triggered count: critical"
+              "options": "critical"
             },
             "properties": [
               {
@@ -864,7 +1045,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "alert triggered count: info"
+              "options": "info"
             },
             "properties": [
               {
@@ -879,7 +1060,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "alert triggered count: none"
+              "options": "none"
             },
             "properties": [
               {
@@ -894,28 +1075,13 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "alert triggered count: warning"
+              "options": "warning"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
                   "fixedColor": "yellow",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "alert triggered count: "
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "super-light-purple",
                   "mode": "fixed"
                 }
               }
@@ -951,8 +1117,8 @@
             "uid": "${loki_datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by(severity) (count_over_time({alert_status=\"firing\"} |= \"$content_filter\" [$__auto]))",
-          "legendFormat": "alert triggered count: {{severity}}",
+          "expr": "count(sum(count_over_time({alert_status=\"firing\"} |= \"$content_filter\" | json alertname=\"alert.labels.alertname\", fingerprint=\"alert.fingerprint\", startsAt=\"alert.startsAt\" [$__auto])) by (alertname, fingerprint, startsAt, severity)) by (severity)",
+          "legendFormat": "{{severity}}",
           "queryType": "range",
           "refId": "A"
         }
@@ -1024,7 +1190,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "alert triggered count: critical"
+              "options": "critical"
             },
             "properties": [
               {
@@ -1039,7 +1205,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "alert triggered count: info"
+              "options": "info"
             },
             "properties": [
               {
@@ -1054,7 +1220,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "alert triggered count: none"
+              "options": "none"
             },
             "properties": [
               {
@@ -1069,7 +1235,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "alert triggered count: warning"
+              "options": "warning"
             },
             "properties": [
               {
@@ -1082,16 +1248,25 @@
             ]
           },
           {
+            "__systemRef": "hideSeriesFrom",
             "matcher": {
-              "id": "byName",
-              "options": "alert triggered count: "
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "critical"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
             },
             "properties": [
               {
-                "id": "color",
+                "id": "custom.hideFrom",
                 "value": {
-                  "fixedColor": "super-light-purple",
-                  "mode": "fixed"
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
                 }
               }
             ]
@@ -1126,8 +1301,8 @@
             "uid": "${loki_datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by(severity) (count_over_time({alert_status=\"resolved\"} |= \"$content_filter\" [$__auto]))",
-          "legendFormat": "alert triggered count: {{severity}}",
+          "expr": "count(sum(count_over_time({alert_status=\"resolved\"} |= \"$content_filter\" | json alertname=\"alert.labels.alertname\", fingerprint=\"alert.fingerprint\", startsAt=\"alert.startsAt\" [$__auto])) by (alertname, fingerprint, startsAt, severity)) by (severity)",
+          "legendFormat": "{{severity}}",
           "queryType": "range",
           "refId": "A"
         }
@@ -1260,6 +1435,22 @@
                 "value": 238
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "start_at"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
           }
         ]
       },
@@ -1282,12 +1473,7 @@
         },
         "frameIndex": 0,
         "showHeader": true,
-        "sortBy": [
-          {
-            "desc": true,
-            "displayName": "startsAt"
-          }
-        ]
+        "sortBy": []
       },
       "pluginVersion": "11.2.0",
       "targets": [
@@ -1350,7 +1536,7 @@
                 "aggregations": [
                   "first"
                 ],
-                "operation": "aggregate"
+                "operation": "groupby"
               },
               "alert_labels_severity": {
                 "aggregations": [
@@ -1362,7 +1548,7 @@
                 "aggregations": [
                   "first"
                 ],
-                "operation": "aggregate"
+                "operation": "groupby"
               }
             }
           }
@@ -1398,9 +1584,9 @@
               "alert_annotations_summary (first)": 5,
               "alert_endsAt (first)": 4,
               "alert_fingerprint": 0,
-              "alert_labels_alertname (first)": 1,
+              "alert_labels_alertname": 1,
               "alert_labels_severity (first)": 2,
-              "alert_startsAt (first)": 3
+              "alert_startsAt": 3
             },
             "renameByName": {
               "alert_annotations_description (first)": "description",
@@ -1410,13 +1596,39 @@
               "alert_endsAt (first)": "endsAt",
               "alert_endsAt (lastNotNull)": "endsAt",
               "alert_fingerprint": "",
+              "alert_labels_alertname": "alertname",
               "alert_labels_alertname (first)": "alertname",
               "alert_labels_alertname (lastNotNull)": "alertname",
               "alert_labels_severity (first)": "severity",
               "alert_labels_severity (lastNotNull)": "severity",
+              "alert_startsAt": "start_at",
               "alert_startsAt (first)": "startsAt",
               "alert_startsAt (lastNotNull)": "startsAt"
             }
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "destinationType": "time",
+                "targetField": "start_at"
+              }
+            ],
+            "fields": {}
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "start_at"
+              }
+            ]
           }
         }
       ],
@@ -1469,7 +1681,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 125
+                "value": 100
               }
             ]
           },
@@ -1653,7 +1865,7 @@
                 "aggregations": [
                   "first"
                 ],
-                "operation": "aggregate"
+                "operation": "groupby"
               },
               "alert_labels_severity": {
                 "aggregations": [
@@ -1665,7 +1877,7 @@
                 "aggregations": [
                   "first"
                 ],
-                "operation": "aggregate"
+                "operation": "groupby"
               }
             }
           }
@@ -1694,10 +1906,12 @@
               "alert_endsAt (first)": "endsAt",
               "alert_endsAt (lastNotNull)": "endsAt",
               "alert_fingerprint": "",
+              "alert_labels_alertname": "alertname",
               "alert_labels_alertname (first)": "alertname",
               "alert_labels_alertname (lastNotNull)": "alertname",
               "alert_labels_severity (first)": "severity",
               "alert_labels_severity (lastNotNull)": "severity",
+              "alert_startsAt": "startsAt",
               "alert_startsAt (first)": "startsAt",
               "alert_startsAt (lastNotNull)": "startsAt"
             }
@@ -1798,7 +2012,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 161
+                "value": 204
               },
               {
                 "id": "unit",
@@ -1814,7 +2028,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 163
+                "value": 188
               },
               {
                 "id": "mappings",
@@ -1891,7 +2105,17 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 231
+                "value": 271
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": true,
+                    "title": "Filter by AlertName",
+                    "url": "/d/ce0vodknf2kn4f/loki-alertmanager-history?var-content_filter=${__data.fields.Alertname}&${__url_time_range}&${__all_variables}"
+                  }
+                ]
               }
             ]
           },
@@ -2006,7 +2230,47 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 364
+                "value": 265
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Runbook"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 78
+              },
+              {
+                "id": "custom.filterable"
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": true,
+                    "title": "Link",
+                    "url": "${__value.raw}"
+                  }
+                ]
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "pattern": ".*",
+                      "result": {
+                        "index": 0,
+                        "text": "Link"
+                      }
+                    },
+                    "type": "regex"
+                  }
+                ]
               }
             ]
           }
@@ -2097,7 +2361,7 @@
                 "aggregations": [
                   "first"
                 ],
-                "operation": "aggregate"
+                "operation": "groupby"
               },
               "alert_labels_instance": {
                 "aggregations": [
@@ -2115,9 +2379,15 @@
                 "aggregations": [
                   "first"
                 ],
-                "operation": "aggregate"
+                "operation": "groupby"
               },
               "alert_status": {
+                "aggregations": [
+                  "first"
+                ],
+                "operation": "aggregate"
+              },
+              "commonAnnotations_runbook_url": {
                 "aggregations": [
                   "first"
                 ],
@@ -2158,21 +2428,23 @@
               "alert_endsAt (first)": false,
               "alert_fingerprint": true,
               "alert_labels_instance (first)": true,
+              "commonAnnotations_runbook_url (first)": false,
               "receiver (first)": true
             },
             "includeByName": {},
             "indexByName": {
-              "alert_annotations_description (first)": 8,
-              "alert_annotations_summary (first)": 7,
+              "alert_annotations_description (first)": 9,
+              "alert_annotations_summary (first)": 8,
               "alert_endsAt (first)": 5,
               "alert_fingerprint": 0,
               "alert_generatorURL (first)": 6,
-              "alert_labels_alertname (first)": 1,
-              "alert_labels_instance (first)": 9,
+              "alert_labels_alertname": 1,
+              "alert_labels_instance (first)": 10,
               "alert_labels_severity (first)": 2,
-              "alert_startsAt (first)": 4,
+              "alert_startsAt": 4,
               "alert_status (first)": 3,
-              "receiver (first)": 10
+              "commonAnnotations_runbook_url (first)": 7,
+              "receiver (first)": 11
             },
             "renameByName": {
               "alert_annotations_description (first)": "Description",
@@ -2183,14 +2455,17 @@
               "alert_endsAt (lastNotNull)": "endsAt",
               "alert_fingerprint": "",
               "alert_generatorURL (first)": "Query",
+              "alert_labels_alertname": "Alertname",
               "alert_labels_alertname (first)": "Alertname",
               "alert_labels_alertname (lastNotNull)": "alertname",
               "alert_labels_instance (first)": "Instance",
               "alert_labels_severity (first)": "Severity",
               "alert_labels_severity (lastNotNull)": "severity",
+              "alert_startsAt": "StartsAt",
               "alert_startsAt (first)": "StartsAt",
               "alert_startsAt (lastNotNull)": "startsAt",
               "alert_status (first)": "Status",
+              "commonAnnotations_runbook_url (first)": "Runbook",
               "receiver (first)": "Receiver"
             }
           }
@@ -2255,6 +2530,6 @@
   "timezone": "browser",
   "title": "Loki / AlertManager History",
   "uid": "ce0vodknf2kn4f",
-  "version": 24,
+  "version": 46,
   "weekStart": ""
 }
