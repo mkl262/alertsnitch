@@ -3,16 +3,16 @@
 
 # AlertSnitch
 
-Captures Prometheus AlertManager alerts and writes them in a MySQL, Postgres or Loki 
+Captures Prometheus AlertManager alerts and writes them in MySQL, Postgres, or Loki 
 for future examination.
 
 Because given a noisy enough alerting environment, offline querying
-capabilities of triggered alerts is extremely valuable.
+capabilities of triggered alerts are extremely valuable.
 
 ## How does it work
 
 1. You stand up one of these however you like (multi-arch Docker images provided)
-1. You setup AlertManager to point at it and propagate your alerts in.
+1. You set up AlertManager to point at it and propagate your alerts.
 1. Every alert that gets triggered reaches your database.
 1. Profit.
 
@@ -43,8 +43,8 @@ To run AlertSnitch requires one of the following backends:
 - Postgres database 
 - Loki instance
 
-For MySQL/Postgres, the database must be initialized with AlertSnitch model.
-AlertSnitch will not become online until the model is up to date with the
+For MySQL/Postgres, the database must be initialized with the AlertSnitch model.
+AlertSnitch will not go online until the model is up to date with the
 expected one. Bootstrapping scripts are provided in the [scripts](./script.d)
 folder.
 
@@ -131,7 +131,7 @@ route:
 
 ### Command line arguments
 
-* **-database-backend** sets the database backend to connect to, supported are `mysql`, `postgres`, `loki` and `null`
+* **-database-backend** sets the database backend to connect to, supported are `mysql`, `postgres`, `loki`, and `null`
 * **-debug** dumps the received WebHook payloads to the log so you can understand what is going on
 * **-listen.address** _string_ address in which to listen for HTTP requests (default ":9567")
 * **-version** prints the version and exit
@@ -150,10 +150,10 @@ route:
 AlertSnitch offers a `/-/ready` endpoint which will return 200 if the
 application is ready to accept WebHook posts.
 
-During startup AlertSnitch will probe the MySQL database and the database
+During startup, AlertSnitch will probe the MySQL database and the database
 model version. If everything is as expected it will set itself as ready.
 
-In case of failure it will return a 500 and will write the error in the
+In case of failure, it will return a 500 and will write the error in the
 response payload.
 
 ### Liveliness probe
@@ -161,7 +161,7 @@ response payload.
 AlertSnitch offers a `/-/health` endpoint which will return 200 as long as
 the MySQL/Postgres database is reachable.
 
-In case of error it will return a 500 and will write the error in the
+In case of error, it will return a 500 and will write the error in the
 response payload.
 
 ### Metrics
