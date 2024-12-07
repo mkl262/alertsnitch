@@ -1,4 +1,12 @@
 {
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "10.0.0"
+    }
+  ],
   "annotations": {
     "list": [
       {
@@ -2504,10 +2512,6 @@
   "templating": {
     "list": [
       {
-        "current": {
-          "text": "loki-sporty-pub-uat-misc",
-          "value": "loki-sporty-pub-uat-misc"
-        },
         "includeAll": false,
         "label": "loki_datasource",
         "name": "loki_datasource",
@@ -2552,8 +2556,8 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Loki / Alert History",
-  "uid": "ce0vodknf2kn4f",
+  "title": "Loki / AlertSnitch Alert History Overview",
+  "uid": "loki-alertsnitch-alert-history-overview",
   "version": 48,
   "weekStart": ""
 }
