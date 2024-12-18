@@ -2,9 +2,8 @@ import http from 'k6/http';
 import { sleep } from 'k6';
 
 export const options = {
-    // 可根據需求調整負載，如同時虛擬使用者數與測試時間
     vus: 1,
-    iterations: 30, // 產生 10 筆假資料，可依需求增減
+    iterations: 30,
 };
 
 const ALERT_NAMES = [
