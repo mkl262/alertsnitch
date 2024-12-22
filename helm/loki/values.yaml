@@ -2,15 +2,6 @@ fullnameOverride: loki
 deploymentMode: Distributed
 
 loki:
-  analytics:
-    reporting_enabled: false
-  auth_enabled: false
-  commonConfig:
-    replication_factor: 1
-  distributor: {}
-  extraMemberlistConfig: {}
-  index_gateway:
-    mode: simple
   limits_config:
     max_query_series: 100000
 
