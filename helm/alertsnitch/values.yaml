@@ -11,7 +11,7 @@ service:
 
 env:
   ALERTSNITCH_ADDR: ":9567"
-  ALERTSNITCH_DEBUG: "true"
+  ALERTSNITCH_DEBUG: "false"
   ALERTSNITCH_BACKEND: "loki"
   ALERTSNITCH_BACKEND_ENPOINT: "http://loki-gateway.loki"
   ALERTSNITCH_LOKI_TENANT_ID: ""

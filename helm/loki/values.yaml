@@ -4,6 +4,15 @@ deploymentMode: Distributed
 loki:
   limits_config:
     max_query_series: 100000
+  schemaConfig:
+    configs:
+      - from: 2024-04-01
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
 
 write:
   replicas: 0
