@@ -2,8 +2,11 @@ fullnameOverride: loki
 deploymentMode: Distributed
 
 loki:
+  auth_enabled: false
   limits_config:
     max_query_series: 100000
+  commonConfig:
+    replication_factor: 1
   schemaConfig:
     configs:
       - from: 2024-04-01

@@ -6,6 +6,8 @@ export const options = {
     iterations: 30,
 };
 
+const ALERTSNITCH_URL = 'http://localhost:9567/webhook';
+
 const ALERT_NAMES = [
     "HighCPUUsage",
     "HighMemoryUsage",
@@ -86,7 +88,7 @@ export default function () {
         "groupKey": `{alertname="${alertname}"}`
     };
 
-    const res = http.post('http://localhost:9567/webhook', JSON.stringify(payload), {
+    const res = http.post( ALERTSNITCH_URL, JSON.stringify(payload), {
         headers: { 'Content-Type': 'application/json' },
     });
 
