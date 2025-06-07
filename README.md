@@ -78,6 +78,16 @@ export ALERTSNITCH_LOKI_BASIC_AUTH_USER="user"  # Optional
 export ALERTSNITCH_LOKI_BASIC_AUTH_PASSWORD="pass"  # Optional
 ```
 
+#### TLS Configuration (for HTTPS connections)
+
+**Use client certificate authentication**
+```bash
+export ALERTSNITCH_LOKI_TLS_INSECURE_SKIP_VERIFY="false"  # Default value
+export ALERTSNITCH_LOKI_TLS_CA_CERT_PATH="/path/to/ca-cert.pem"
+export ALERTSNITCH_LOKI_TLS_CLIENT_CERT_PATH="/path/to/client-cert.pem"
+export ALERTSNITCH_LOKI_TLS_CLIENT_KEY_PATH="/path/to/client-key.pem"
+```
+
 ## How to run
 
 ### Running with Docker
@@ -138,12 +148,22 @@ route:
 
 ### Environment variables
 
+#### Basic Configuration
 - **ALERTSNITCH_BACKEND_ENPOINT** *required* database/loki connection endpoint
 - **ALERTSNITCH_ADDR** same as **-listen.address**
 - **ALERTSNITCH_BACKEND** same as **-database-backend**
+
+#### Loki Authentication Configuration
 - **ALERTSNITCH_LOKI_TENANT_ID** Loki tenant ID (optional)
 - **ALERTSNITCH_LOKI_BASIC_AUTH_USER** Loki basic auth username (optional)
 - **ALERTSNITCH_LOKI_BASIC_AUTH_PASSWORD** Loki basic auth password (optional)
+
+#### Loki TLS Configuration
+- **ALERTSNITCH_LOKI_TLS_INSECURE_SKIP_VERIFY** Skip TLS certificate verification, set to "true" or "false" (default: "false")
+- **ALERTSNITCH_LOKI_TLS_CA_CERT_PATH** Custom CA certificate file path 
+- **ALERTSNITCH_LOKI_TLS_CLIENT_CERT_PATH** Client TLS certificate file path
+- **ALERTSNITCH_LOKI_TLS_CLIENT_KEY_PATH** Client TLS private key file path
+
 
 ### Readiness probe
 

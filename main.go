@@ -27,9 +27,14 @@ type Args struct {
 	MaxOpenConns           int
 	MaxConnLifetimeSeconds int
 
-	LokiTenantID           string
-	LokiBasicAuthUser      string
-	LokiBasicAuthPassword  string
+	LokiTenantID          string
+	LokiBasicAuthUser     string
+	LokiBasicAuthPassword string
+
+	LokiTLSInsecureSkipVerify string
+	LokiTLSCACertPath         string
+	LokiTLSClientCertPath     string
+	LokiTLSClientKeyPath      string
 
 	Debug   bool
 	DryRun  bool
@@ -58,6 +63,11 @@ func main() {
 	flag.StringVar(&args.LokiBasicAuthUser, "basic-auth-user", env.GetEnv("ALERTSNITCH_LOKI_BASIC_AUTH_USER", ""), "Loki basic auth user")
 	flag.StringVar(&args.LokiBasicAuthPassword, "basic-auth-password", env.GetEnv("ALERTSNITCH_LOKI_BASIC_AUTH_PASSWORD", ""), "Loki basic auth password")
 
+	flag.StringVar(&args.LokiTLSInsecureSkipVerify, "tls-insecure-skip-verify", env.GetEnv("ALERTSNITCH_LOKI_TLS_INSECURE_SKIP_VERIFY", "false"), "skip TLS certificate verification (only for testing)")
+	flag.StringVar(&args.LokiTLSCACertPath, "tls-ca-cert-path", env.GetEnv("ALERTSNITCH_LOKI_TLS_CA_CERT_PATH", ""), "custom CA certificate file path")
+	flag.StringVar(&args.LokiTLSClientCertPath, "tls-client-cert-path", env.GetEnv("ALERTSNITCH_LOKI_TLS_CLIENT_CERT_PATH", ""), "client TLS certificate file path")
+	flag.StringVar(&args.LokiTLSClientKeyPath, "tls-client-key-path", env.GetEnv("ALERTSNITCH_LOKI_TLS_CLIENT_KEY_PATH", ""), "client TLS private key file path")
+
 	flag.Parse()
 
 	if args.Version {
@@ -75,9 +85,13 @@ func main() {
 		MaxConnLifetimeSeconds: args.MaxConnLifetimeSeconds,
 
 		Options: map[string]string{
-			"tenant_id":           args.LokiTenantID,
-			"basic_auth_user":     args.LokiBasicAuthUser,
-			"basic_auth_password": args.LokiBasicAuthPassword,
+			"tenant_id":                args.LokiTenantID,
+			"basic_auth_user":          args.LokiBasicAuthUser,
+			"basic_auth_password":      args.LokiBasicAuthPassword,
+			"tls_insecure_skip_verify": args.LokiTLSInsecureSkipVerify,
+			"tls_ca_cert_path":         args.LokiTLSCACertPath,
+			"tls_client_cert_path":     args.LokiTLSClientCertPath,
+			"tls_client_key_path":      args.LokiTLSClientKeyPath,
 		},
 	})
 	if err != nil {

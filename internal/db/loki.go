@@ -3,12 +3,15 @@ package db
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -22,10 +25,9 @@ const (
 	lokiAPIPath      = "loki/api/v1"
 	minTimeout       = 1 * time.Second
 	maxTimeout       = 30 * time.Second
-	maxErrorBodySize = 64 * 1024 // 64KB 錯誤響應大小限制
+	maxErrorBodySize = 64 * 1024
 )
 
-// loki entry 的格式
 type stream struct {
 	Stream map[string]string `json:"stream"`
 	Values []row             `json:"values"`
@@ -51,6 +53,14 @@ type LokiConfig struct {
 	Url            *url.URL
 	Auth           AuthConfig
 	RequestTimeout time.Duration
+	TLS            TLSConfig
+}
+
+type TLSConfig struct {
+	InsecureSkipVerify bool
+	CACertPath         string
+	ClientCertPath     string
+	ClientKeyPath      string
 }
 
 type AuthConfig struct {
@@ -69,7 +79,6 @@ func (c *LokiConfig) Validate() error {
 	}
 
 	if c.RequestTimeout == 0 {
-		// 零值情況下使用預設值，不視為錯誤
 		c.RequestTimeout = defaultTimeout
 	} else if c.RequestTimeout < minTimeout {
 		return fmt.Errorf("request timeout too short: %v, minimum is %v", c.RequestTimeout, minTimeout)
@@ -77,21 +86,22 @@ func (c *LokiConfig) Validate() error {
 		return fmt.Errorf("request timeout too long: %v, maximum is %v", c.RequestTimeout, maxTimeout)
 	}
 
-	// 驗證認證配置的一致性
 	if err := c.Auth.Validate(); err != nil {
 		return fmt.Errorf("auth config validation failed: %w", err)
+	}
+
+	if err := c.TLS.Validate(); err != nil {
+		return fmt.Errorf("TLS config validation failed: %w", err)
 	}
 
 	return nil
 }
 
 func (a AuthConfig) Validate() error {
-	// 如果設置了基本認證用戶名，則密碼也必須設置
 	if a.BasicAuthUser != "" && a.BasicAuthPassword == "" {
 		return errors.New("basic auth password is required when basic auth user is set")
 	}
 
-	// 如果設置了基本認證密碼，則用戶名也必須設置
 	if a.BasicAuthPassword != "" && a.BasicAuthUser == "" {
 		return errors.New("basic auth user is required when basic auth password is set")
 	}
@@ -99,8 +109,38 @@ func (a AuthConfig) Validate() error {
 	return nil
 }
 
+func (t TLSConfig) Validate() error {
+	if (t.ClientCertPath != "" && t.ClientKeyPath == "") || (t.ClientCertPath == "" && t.ClientKeyPath != "") {
+		return errors.New("both client certificate path and key path must be provided together")
+	}
+
+	if t.CACertPath != "" {
+		if _, err := os.Stat(t.CACertPath); os.IsNotExist(err) {
+			return fmt.Errorf("CA certificate file not found: %s", t.CACertPath)
+		}
+	}
+
+	if t.ClientCertPath != "" {
+		if _, err := os.Stat(t.ClientCertPath); os.IsNotExist(err) {
+			return fmt.Errorf("client certificate file not found: %s", t.ClientCertPath)
+		}
+	}
+
+	if t.ClientKeyPath != "" {
+		if _, err := os.Stat(t.ClientKeyPath); os.IsNotExist(err) {
+			return fmt.Errorf("client key file not found: %s", t.ClientKeyPath)
+		}
+	}
+
+	if t.InsecureSkipVerify {
+		logrus.Warn("TLS certificate verification is disabled - this should only be used in testing environments")
+	}
+
+	return nil
+}
+
 type lokiClient struct {
-	client *http.Client // 使用指針，http.Client 本身是併行安全的
+	client *http.Client
 	cfg    LokiConfig
 }
 
@@ -115,7 +155,6 @@ func connectLoki(args ConnectionArgs) (*lokiClient, error) {
 		return nil, fmt.Errorf("failed to parse Loki endpoint: %s", err)
 	}
 
-	// 簡單直接的配置創建
 	cfg := LokiConfig{
 		Url: endpoint,
 		Auth: AuthConfig{
@@ -124,19 +163,30 @@ func connectLoki(args ConnectionArgs) (*lokiClient, error) {
 			BasicAuthPassword: args.Options["basic_auth_password"],
 		},
 		RequestTimeout: defaultTimeout,
+		TLS: TLSConfig{
+			InsecureSkipVerify: args.Options["tls_insecure_skip_verify"] == "true",
+			CACertPath:         args.Options["tls_ca_cert_path"],
+			ClientCertPath:     args.Options["tls_client_cert_path"],
+			ClientKeyPath:      args.Options["tls_client_key_path"],
+		},
 	}
 
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid Loki configuration: %w", err)
 	}
 
-	// 創建優化的 HTTP 客戶端
+	tlsConfig, err := buildTLSConfig(cfg.TLS)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build TLS config: %w", err)
+	}
+
 	httpClient := &http.Client{
 		Timeout: cfg.RequestTimeout,
 		Transport: &http.Transport{
 			MaxIdleConns:        100,
 			MaxIdleConnsPerHost: 10,
 			IdleConnTimeout:     90 * time.Second,
+			TLSClientConfig:     tlsConfig,
 		},
 	}
 
@@ -247,7 +297,6 @@ func (c *lokiClient) Save(ctx context.Context, data *internal.AlertGroup) error 
 	}
 
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		// 限制錯誤響應大小以防止 OOM 攻擊
 		limitedReader := io.LimitReader(res.Body, maxErrorBodySize)
 		byt, readErr := io.ReadAll(limitedReader)
 		if readErr != nil {
@@ -281,7 +330,6 @@ func cloneLabels(labels map[string]string) map[string]string {
 	return clone
 }
 
-// 簡單的分組函數
 func groupAlertsByStatus(alerts []internal.Alert) map[string][]internal.Alert {
 	alertsByStatus := make(map[string][]internal.Alert)
 	for _, alert := range alerts {
@@ -301,7 +349,6 @@ func createStreamForStatus(status string, alerts []internal.Alert, data *interna
 
 	now := time.Now()
 	for _, alert := range alerts {
-		// 簡單直接的 JSON 序列化
 		flattenGroup := internal.FlattenAlertGroup{
 			Version:           data.Version,
 			GroupKey:          data.GroupKey,
@@ -349,7 +396,6 @@ func (c *lokiClient) dataToStream(data *internal.AlertGroup, extraLabels map[str
 	return streams, nil
 }
 
-// 允許的標籤集合 - 避免無意義的恆等映射
 var allowedLabels = map[string]bool{
 	"severity":  true,
 	"priority":  true,
@@ -366,32 +412,60 @@ var allowedLabels = map[string]bool{
 	"cluster":   true,
 }
 
-// buildStreamLabels 構建流標籤 - 簡單直接的函數
 func buildStreamLabels(data *internal.AlertGroup, extraLabels map[string]string) map[string]string {
 	streamLabels := make(map[string]string, len(extraLabels)+len(data.CommonLabels)+len(data.GroupLabels)+2)
 
-	// 添加額外標籤
 	for key, value := range extraLabels {
 		streamLabels[key] = value
 	}
 
-	// 添加通用標籤
 	for commonLabel, commonValue := range data.CommonLabels {
 		if allowedLabels[commonLabel] {
 			streamLabels[commonLabel] = commonValue
 		}
 	}
 
-	// 添加群組標籤
 	for groupLabel, groupValue := range data.GroupLabels {
 		if allowedLabels[groupLabel] {
 			streamLabels[groupLabel] = groupValue
 		}
 	}
 
-	// 添加基本標籤
+	// Add basic labels
 	streamLabels["receiver"] = data.Receiver
 	streamLabels["status"] = data.Status
 
 	return streamLabels
+}
+
+func buildTLSConfig(tlsCfg TLSConfig) (*tls.Config, error) {
+	config := &tls.Config{
+		InsecureSkipVerify: tlsCfg.InsecureSkipVerify,
+	}
+
+	if tlsCfg.CACertPath != "" {
+		caCert, err := os.ReadFile(tlsCfg.CACertPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read CA certificate from %s: %w", tlsCfg.CACertPath, err)
+		}
+
+		caCertPool := x509.NewCertPool()
+		if !caCertPool.AppendCertsFromPEM(caCert) {
+			return nil, fmt.Errorf("failed to parse CA certificate from %s", tlsCfg.CACertPath)
+		}
+		config.RootCAs = caCertPool
+		logrus.Infof("Loaded custom CA certificate from: %s", tlsCfg.CACertPath)
+	}
+
+	if tlsCfg.ClientCertPath != "" && tlsCfg.ClientKeyPath != "" {
+		cert, err := tls.LoadX509KeyPair(tlsCfg.ClientCertPath, tlsCfg.ClientKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load client certificate from %s and %s: %w",
+				tlsCfg.ClientCertPath, tlsCfg.ClientKeyPath, err)
+		}
+		config.Certificates = []tls.Certificate{cert}
+		logrus.Infof("Loaded client certificate from: %s", tlsCfg.ClientCertPath)
+	}
+
+	return config, nil
 }
