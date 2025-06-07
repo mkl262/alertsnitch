@@ -319,14 +319,8 @@ func createStreamForStatus(status string, alerts []internal.Alert, data *interna
 			return stream{}, fmt.Errorf("error marshalling FlattenAlertGroup: %w", err)
 		}
 
-		// 使用警報的實際時間，如果沒有則使用當前時間
-		timestamp := now
-		if !alert.StartsAt.IsZero() {
-			timestamp = alert.StartsAt
-		}
-
 		s.Values = append(s.Values, row{
-			At:  timestamp,
+			At:  now,
 			Val: string(jsonData),
 		})
 	}
