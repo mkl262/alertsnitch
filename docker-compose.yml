@@ -5,7 +5,7 @@ version: '3.7'
 
 services:
   alertsnitch:
-    image: mikehsu0618/alertsnitch:latest
+    image: mikehsu0618/alertsnitch:v0.5.0
     ports:
       - "9567:9567"
     env_file:
