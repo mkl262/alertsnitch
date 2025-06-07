@@ -18,8 +18,11 @@ import (
 )
 
 const (
-	defaultTimeout = 5 * time.Second
-	lokiAPIPath    = "loki/api/v1"
+	defaultTimeout   = 5 * time.Second
+	lokiAPIPath      = "loki/api/v1"
+	minTimeout       = 1 * time.Second
+	maxTimeout       = 30 * time.Second
+	maxErrorBodySize = 64 * 1024 // 64KB 錯誤響應大小限制
 )
 
 // loki entry 的格式
@@ -45,26 +48,59 @@ type Config interface {
 }
 
 type LokiConfig struct {
-	Url              *url.URL
-	Auth             AuthConfig
-	RequestTimeout   time.Duration
+	Url            *url.URL
+	Auth           AuthConfig
+	RequestTimeout time.Duration
 }
 
 type AuthConfig struct {
-	TenantID         string
-	BasicAuthUser    string
+	TenantID          string
+	BasicAuthUser     string
 	BasicAuthPassword string
 }
 
-func (c LokiConfig) Validate() error {
+func (c *LokiConfig) Validate() error {
 	if c.Url == nil {
 		return errors.New("URL is required")
 	}
+
+	if c.Url.Scheme != "http" && c.Url.Scheme != "https" {
+		return fmt.Errorf("unsupported URL scheme: %s, only http and https are supported", c.Url.Scheme)
+	}
+
+	if c.RequestTimeout == 0 {
+		// 零值情況下使用預設值，不視為錯誤
+		c.RequestTimeout = defaultTimeout
+	} else if c.RequestTimeout < minTimeout {
+		return fmt.Errorf("request timeout too short: %v, minimum is %v", c.RequestTimeout, minTimeout)
+	} else if c.RequestTimeout > maxTimeout {
+		return fmt.Errorf("request timeout too long: %v, maximum is %v", c.RequestTimeout, maxTimeout)
+	}
+
+	// 驗證認證配置的一致性
+	if err := c.Auth.Validate(); err != nil {
+		return fmt.Errorf("auth config validation failed: %w", err)
+	}
+
+	return nil
+}
+
+func (a AuthConfig) Validate() error {
+	// 如果設置了基本認證用戶名，則密碼也必須設置
+	if a.BasicAuthUser != "" && a.BasicAuthPassword == "" {
+		return errors.New("basic auth password is required when basic auth user is set")
+	}
+
+	// 如果設置了基本認證密碼，則用戶名也必須設置
+	if a.BasicAuthPassword != "" && a.BasicAuthUser == "" {
+		return errors.New("basic auth user is required when basic auth password is set")
+	}
+
 	return nil
 }
 
 type lokiClient struct {
-	client http.Client
+	client *http.Client // 使用指針，http.Client 本身是併行安全的
 	cfg    LokiConfig
 }
 
@@ -79,16 +115,34 @@ func connectLoki(args ConnectionArgs) (*lokiClient, error) {
 		return nil, fmt.Errorf("failed to parse Loki endpoint: %s", err)
 	}
 
-	client := &lokiClient{
-		cfg: LokiConfig{
-			Url: endpoint,
-			Auth: AuthConfig{
-				TenantID:         args.Options["tenant_id"],
-				BasicAuthUser:    args.Options["basic_auth_user"],
-				BasicAuthPassword: args.Options["basic_auth_password"],
-			},
-			RequestTimeout: defaultTimeout,
+	// 簡單直接的配置創建
+	cfg := LokiConfig{
+		Url: endpoint,
+		Auth: AuthConfig{
+			TenantID:          args.Options["tenant_id"],
+			BasicAuthUser:     args.Options["basic_auth_user"],
+			BasicAuthPassword: args.Options["basic_auth_password"],
 		},
+		RequestTimeout: defaultTimeout,
+	}
+
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid Loki configuration: %w", err)
+	}
+
+	// 創建優化的 HTTP 客戶端
+	httpClient := &http.Client{
+		Timeout: cfg.RequestTimeout,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 10,
+			IdleConnTimeout:     90 * time.Second,
+		},
+	}
+
+	client := &lokiClient{
+		client: httpClient,
+		cfg:    cfg,
 	}
 
 	if err := client.Ping(); err != nil {
@@ -100,7 +154,7 @@ func connectLoki(args ConnectionArgs) (*lokiClient, error) {
 
 // Ping implements Storer interface
 func (c *lokiClient) Ping() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), c.cfg.RequestTimeout)
 	defer cancel()
 
 	if err := c.pingContext(ctx); err != nil {
@@ -108,7 +162,7 @@ func (c *lokiClient) Ping() error {
 		logrus.Debugf("Failed to ping Loki: %s", err)
 		return err
 	}
-	
+
 	metrics.DatabaseUp.Set(1)
 	logrus.Debugf("Pinged Loki successfully")
 	return nil
@@ -146,7 +200,7 @@ func (c *lokiClient) setAuthAndTenantHeaders(req *http.Request) {
 
 	if c.cfg.Auth.BasicAuthUser != "" && c.cfg.Auth.BasicAuthPassword != "" {
 		req.SetBasicAuth(c.cfg.Auth.BasicAuthUser, c.cfg.Auth.BasicAuthPassword)
-		logrus.Debugf("Setting basic auth user: %s, password: %s", c.cfg.Auth.BasicAuthUser, c.cfg.Auth.BasicAuthPassword)
+		logrus.Debugf("Setting basic auth for user: %s", c.cfg.Auth.BasicAuthUser)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -161,7 +215,7 @@ func (c *lokiClient) Save(ctx context.Context, data *internal.AlertGroup) error 
 	if err != nil {
 		return fmt.Errorf("error converting data to stream: %w", err)
 	}
-	
+
 	payload := payload{
 		Streams: streams,
 	}
@@ -193,13 +247,21 @@ func (c *lokiClient) Save(ctx context.Context, data *internal.AlertGroup) error 
 	}
 
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		byt, _ := io.ReadAll(res.Body)
-		if len(byt) > 0 {
-			logrus.Error("Error response from Loki ", "response", string(byt), "status", res.StatusCode)
-		} else {
-			logrus.Error("Error response from Loki with an empty body ", "status", res.StatusCode)
+		// 限制錯誤響應大小以防止 OOM 攻擊
+		limitedReader := io.LimitReader(res.Body, maxErrorBodySize)
+		byt, readErr := io.ReadAll(limitedReader)
+		if readErr != nil {
+			logrus.Errorf("Failed to read error response body: %v", readErr)
+			return fmt.Errorf("received non-2XX response from Loki (status: %d) and failed to read response body: %w", res.StatusCode, readErr)
 		}
-		return fmt.Errorf("received a non-2XX response from loki, status: %d", res.StatusCode)
+
+		if len(byt) > 0 {
+			logrus.Errorf("Loki error response - Status: %d, Body: %s", res.StatusCode, string(byt))
+			return fmt.Errorf("Loki returned error (status: %d): %s", res.StatusCode, string(byt))
+		} else {
+			logrus.Errorf("Loki error response - Status: %d, Empty body", res.StatusCode)
+			return fmt.Errorf("Loki returned error with empty body (status: %d)", res.StatusCode)
+		}
 	}
 
 	logrus.Debugf("Save data to Loki: %v", fmt.Sprintf("%+v", data))
@@ -219,94 +281,121 @@ func cloneLabels(labels map[string]string) map[string]string {
 	return clone
 }
 
-func (c *lokiClient) dataToStream(data *internal.AlertGroup, extraLabels map[string]string) ([]stream, error) {
+// 簡單的分組函數
+func groupAlertsByStatus(alerts []internal.Alert) map[string][]internal.Alert {
 	alertsByStatus := make(map[string][]internal.Alert)
-	for _, alert := range data.Alerts {
+	for _, alert := range alerts {
 		alertsByStatus[alert.Status] = append(alertsByStatus[alert.Status], alert)
 	}
-	
-	baseLabels := c.getStreamLabels(data, extraLabels)
-	
-	var streams []stream
+	return alertsByStatus
+}
+
+func createStreamForStatus(status string, alerts []internal.Alert, data *internal.AlertGroup, baseLabels map[string]string) (stream, error) {
+	streamLabels := cloneLabels(baseLabels)
+	streamLabels["alert_status"] = status
+
+	s := stream{
+		Stream: streamLabels,
+		Values: make([]row, 0, len(alerts)),
+	}
+
+	now := time.Now()
+	for _, alert := range alerts {
+		// 簡單直接的 JSON 序列化
+		flattenGroup := internal.FlattenAlertGroup{
+			Version:           data.Version,
+			GroupKey:          data.GroupKey,
+			Receiver:          data.Receiver,
+			Status:            data.Status,
+			Alert:             alert,
+			GroupLabels:       data.GroupLabels,
+			CommonLabels:      data.CommonLabels,
+			CommonAnnotations: data.CommonAnnotations,
+			ExternalURL:       data.ExternalURL,
+		}
+
+		jsonData, err := json.Marshal(flattenGroup)
+		if err != nil {
+			return stream{}, fmt.Errorf("error marshalling FlattenAlertGroup: %w", err)
+		}
+
+		// 使用警報的實際時間，如果沒有則使用當前時間
+		timestamp := now
+		if !alert.StartsAt.IsZero() {
+			timestamp = alert.StartsAt
+		}
+
+		s.Values = append(s.Values, row{
+			At:  timestamp,
+			Val: string(jsonData),
+		})
+	}
+
+	return s, nil
+}
+
+func (c *lokiClient) dataToStream(data *internal.AlertGroup, extraLabels map[string]string) ([]stream, error) {
+	if len(data.Alerts) == 0 {
+		return nil, fmt.Errorf("no alerts to process")
+	}
+
+	alertsByStatus := groupAlertsByStatus(data.Alerts)
+	baseLabels := buildStreamLabels(data, extraLabels)
+
+	streams := make([]stream, 0, len(alertsByStatus))
+
 	for status, alerts := range alertsByStatus {
-		streamLabels := cloneLabels(baseLabels)
-		streamLabels["alert_status"] = status
-		
-		s := stream{
-			Stream: streamLabels,
-			Values: make([]row, 0, len(alerts)),
+		s, err := createStreamForStatus(status, alerts, data, baseLabels)
+		if err != nil {
+			return nil, err
 		}
-		
-		for _, alert := range alerts {
-			flattenGroup := internal.FlattenAlertGroup{
-				Version:           data.Version,
-				GroupKey:         data.GroupKey,
-				Receiver:         data.Receiver,
-				Status:           data.Status,
-				Alert:            alert,
-				GroupLabels:      data.GroupLabels,
-				CommonLabels:     data.CommonLabels,
-				CommonAnnotations: data.CommonAnnotations,
-				ExternalURL:      data.ExternalURL,
-			}
-			
-			jsonData, err := json.Marshal(flattenGroup)
-			if err != nil {
-				return nil, fmt.Errorf("error marshalling FlattenAlertGroup: %w", err)
-			}
-			
-			s.Values = append(s.Values, row{
-				At:  time.Now(),
-				Val: string(jsonData),
-			})
-		}
-		
 		streams = append(streams, s)
 	}
-	
+
 	return streams, nil
 }
 
-var additionalLabels = map[string]string{
-	"severity":  "severity",
-	"priority":  "priority",
-	"level":     "level",
-	"instance":  "instance",
-	"job":       "job",
-	"team":      "team",
-	"env":       "env",
-	"service":   "service",
-	"pod":       "pod",
-	"namespace": "namespace",
-	"node":      "node",
-	"container": "container",
-	"cluster":   "cluster",
+// 允許的標籤集合 - 避免無意義的恆等映射
+var allowedLabels = map[string]bool{
+	"severity":  true,
+	"priority":  true,
+	"level":     true,
+	"instance":  true,
+	"job":       true,
+	"team":      true,
+	"env":       true,
+	"service":   true,
+	"pod":       true,
+	"namespace": true,
+	"node":      true,
+	"container": true,
+	"cluster":   true,
 }
 
-func (c *lokiClient) getStreamLabels(data *internal.AlertGroup, extraLabels map[string]string) map[string]string {
-	streamLabels := stream{
-		Stream: make(map[string]string),
-		Values: make([]row, 0),
-	}.Stream
-	
-	for extraKey, extraValue := range extraLabels {
-		streamLabels[extraKey] = extraValue
+// buildStreamLabels 構建流標籤 - 簡單直接的函數
+func buildStreamLabels(data *internal.AlertGroup, extraLabels map[string]string) map[string]string {
+	streamLabels := make(map[string]string, len(extraLabels)+len(data.CommonLabels)+len(data.GroupLabels)+2)
+
+	// 添加額外標籤
+	for key, value := range extraLabels {
+		streamLabels[key] = value
 	}
 
+	// 添加通用標籤
 	for commonLabel, commonValue := range data.CommonLabels {
-		if label, ok := additionalLabels[commonLabel]; ok {
-			streamLabels[label] = commonValue
+		if allowedLabels[commonLabel] {
+			streamLabels[commonLabel] = commonValue
 		}
 	}
 
+	// 添加群組標籤
 	for groupLabel, groupValue := range data.GroupLabels {
-		if label, ok := additionalLabels[groupLabel]; ok {
-			streamLabels[label] = groupValue
+		if allowedLabels[groupLabel] {
+			streamLabels[groupLabel] = groupValue
 		}
 	}
 
-
-	// streamLabels["app"] = "alertsnitch" // TBD if we need use label "app"
+	// 添加基本標籤
 	streamLabels["receiver"] = data.Receiver
 	streamLabels["status"] = data.Status
 
