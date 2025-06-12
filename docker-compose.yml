@@ -5,7 +5,7 @@ version: '3.7'
 
 services:
   alertsnitch:
-    image: mikehsu0618/alertsnitch:v0.5.0
+    image: mikehsu0618/alertsnitch:v0.7.0
     ports:
       - "9567:9567"
     env_file:
@@ -22,6 +22,11 @@ services:
       ALERTSNITCH_LOKI_TLS_CA_CERT_PATH: "${ALERTSNITCH_LOKI_TLS_CA_CERT_PATH:-}"
       ALERTSNITCH_LOKI_TLS_CLIENT_CERT_PATH: "${ALERTSNITCH_LOKI_TLS_CLIENT_CERT_PATH:-}"
       ALERTSNITCH_LOKI_TLS_CLIENT_KEY_PATH: "${ALERTSNITCH_LOKI_TLS_CLIENT_KEY_PATH:-}"
+      # Batch configuration
+      ALERTSNITCH_LOKI_BATCH_ENABLED: "${ALERTSNITCH_LOKI_BATCH_ENABLED:-true}"
+      ALERTSNITCH_LOKI_BATCH_SIZE: "${ALERTSNITCH_LOKI_BATCH_SIZE:-100}"
+      ALERTSNITCH_LOKI_BATCH_FLUSH_TIMEOUT: "${ALERTSNITCH_LOKI_BATCH_FLUSH_TIMEOUT:-5s}"
+      ALERTSNITCH_LOKI_BATCH_MAX_RETRIES: "${ALERTSNITCH_LOKI_BATCH_MAX_RETRIES:-3}"
       # Proxy configuration (Prometheus style - uses standard environment variables)
       HTTP_PROXY: "${HTTP_PROXY:-}"
       HTTPS_PROXY: "${HTTPS_PROXY:-}"

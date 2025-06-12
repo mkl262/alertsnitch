@@ -48,6 +48,25 @@ func (r row) MarshalJSON() ([]byte, error) {
 	return json.Marshal([]string{fmt.Sprintf("%d", r.At.UnixNano()), r.Val})
 }
 
+func (r *row) UnmarshalJSON(data []byte) error {
+	var arr []string
+	if err := json.Unmarshal(data, &arr); err != nil {
+		return err
+	}
+	if len(arr) != 2 {
+		return fmt.Errorf("expected array of length 2, got %d", len(arr))
+	}
+
+	timestamp, err := strconv.ParseInt(arr[0], 10, 64)
+	if err != nil {
+		return fmt.Errorf("failed to parse timestamp: %w", err)
+	}
+
+	r.At = time.Unix(0, timestamp)
+	r.Val = arr[1]
+	return nil
+}
+
 type payload struct {
 	Streams []stream `json:"streams"`
 }
@@ -260,9 +279,14 @@ func connectLoki(args ConnectionArgs) (*lokiClient, error) {
 	}
 
 	if cfg.Batch.Enabled {
-		client.alertCh = make(chan alertGroupWithParams, cfg.Batch.Size*2)
+		// Use a larger buffer to handle high concurrent loads
+		bufferSize := cfg.Batch.Size * 10
+		if bufferSize < 1000 {
+			bufferSize = 1000
+		}
+		client.alertCh = make(chan alertGroupWithParams, bufferSize)
 		client.startBatchProcessor()
-		logrus.Infof("Loki batch processing enabled: size=%d, timeout=%v", cfg.Batch.Size, cfg.Batch.FlushTimeout)
+		logrus.Infof("Loki batch processing enabled: size=%d, timeout=%v, buffer=%d", cfg.Batch.Size, cfg.Batch.FlushTimeout, bufferSize)
 	}
 
 	if err := client.Ping(); err != nil {
@@ -522,8 +546,12 @@ func (c *lokiClient) pingContext(ctx context.Context) error {
 			}
 		}()
 	}
-	if err != nil || (res.StatusCode < 200 || res.StatusCode >= 300) {
-		return fmt.Errorf("failed to ping Loki endpoint: %s", err)
+	if err != nil {
+		return fmt.Errorf("failed to ping Loki endpoint: %w", err)
+	}
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return fmt.Errorf("Loki ping returned non-2XX status code: %d", res.StatusCode)
 	}
 
 	return nil
@@ -557,9 +585,17 @@ func (c *lokiClient) Save(ctx context.Context, data *internal.AlertGroup) error 
 			return nil
 		case <-ctx.Done():
 			return ctx.Err()
-		default:
-			logrus.Warn("Alert channel is full, dropping alert")
-			return fmt.Errorf("alert queue is full")
+		case <-time.After(100 * time.Millisecond):
+			// If queue is full, wait and retry after some time
+			select {
+			case c.alertCh <- alertWithParams:
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+				logrus.Warn("Alert channel is full, dropping alert")
+				return fmt.Errorf("alert queue is full")
+			}
 		}
 	}
 
