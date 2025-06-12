@@ -248,6 +248,7 @@ func connectLoki(args ConnectionArgs) (*lokiClient, error) {
 			MaxIdleConnsPerHost: 10,
 			IdleConnTimeout:     90 * time.Second,
 			TLSClientConfig:     tlsConfig,
+			Proxy:               http.ProxyFromEnvironment,
 		},
 	}
 

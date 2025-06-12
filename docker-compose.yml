@@ -22,6 +22,10 @@ services:
       ALERTSNITCH_LOKI_TLS_CA_CERT_PATH: "${ALERTSNITCH_LOKI_TLS_CA_CERT_PATH:-}"
       ALERTSNITCH_LOKI_TLS_CLIENT_CERT_PATH: "${ALERTSNITCH_LOKI_TLS_CLIENT_CERT_PATH:-}"
       ALERTSNITCH_LOKI_TLS_CLIENT_KEY_PATH: "${ALERTSNITCH_LOKI_TLS_CLIENT_KEY_PATH:-}"
+      # Proxy configuration (Prometheus style - uses standard environment variables)
+      HTTP_PROXY: "${HTTP_PROXY:-}"
+      HTTPS_PROXY: "${HTTPS_PROXY:-}"
+      NO_PROXY: "${NO_PROXY:-}"
     depends_on:
       - "${ALERTSNITCH_BACKEND}"
     profiles:
