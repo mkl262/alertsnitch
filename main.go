@@ -75,7 +75,7 @@ func main() {
 
 	flag.BoolVar(&args.LokiBatchEnabled, "loki-batch-enabled", env.GetEnvAsBool("ALERTSNITCH_LOKI_BATCH_ENABLED", false), "enable Loki batch processing")
 	flag.IntVar(&args.LokiBatchSize, "loki-batch-size", env.GetEnvAsInt("ALERTSNITCH_LOKI_BATCH_SIZE", 100), "Loki batch size")
-	flag.StringVar(&args.LokiBatchFlushTimeout, "loki-batch-flush-timeout", env.GetEnv("ALERTSNITCH_LOKI_BATCH_FLUSH_TIMEOUT", "1s"), "Loki batch flush timeout")
+	flag.StringVar(&args.LokiBatchFlushTimeout, "loki-batch-flush-timeout", env.GetEnv("ALERTSNITCH_LOKI_BATCH_FLUSH_TIMEOUT", "5s"), "Loki batch flush timeout")
 	flag.IntVar(&args.LokiBatchMaxRetries, "loki-batch-max-retries", env.GetEnvAsInt("ALERTSNITCH_LOKI_BATCH_MAX_RETRIES", 3), "Loki batch max retries")
 
 	flag.Parse()
