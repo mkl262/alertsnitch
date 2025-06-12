@@ -52,6 +52,13 @@ type payload struct {
 	Streams []stream `json:"streams"`
 }
 
+// alertGroupWithParams wraps an AlertGroup with its associated query parameters
+// This is used for batch processing to preserve query parameters from the original request context
+type alertGroupWithParams struct {
+	AlertGroup  *internal.AlertGroup
+	QueryParams map[string]string
+}
+
 type Config interface {
 	Validate() error
 }
@@ -160,7 +167,7 @@ type lokiClient struct {
 	cfg    LokiConfig
 
 	batchEnabled bool
-	alertCh      chan *internal.AlertGroup
+	alertCh      chan alertGroupWithParams
 	stopCh       chan struct{}
 	wg           sync.WaitGroup
 	mu           sync.RWMutex
@@ -252,7 +259,7 @@ func connectLoki(args ConnectionArgs) (*lokiClient, error) {
 	}
 
 	if cfg.Batch.Enabled {
-		client.alertCh = make(chan *internal.AlertGroup, cfg.Batch.Size*2)
+		client.alertCh = make(chan alertGroupWithParams, cfg.Batch.Size*2)
 		client.startBatchProcessor()
 		logrus.Infof("Loki batch processing enabled: size=%d, timeout=%v", cfg.Batch.Size, cfg.Batch.FlushTimeout)
 	}
@@ -300,7 +307,7 @@ func (c *lokiClient) processBatches() {
 	ticker := time.NewTicker(c.cfg.Batch.FlushTimeout)
 	defer ticker.Stop()
 
-	batch := make([]*internal.AlertGroup, 0, c.cfg.Batch.Size)
+	batch := make([]alertGroupWithParams, 0, c.cfg.Batch.Size)
 
 	for {
 		select {
@@ -326,7 +333,7 @@ func (c *lokiClient) processBatches() {
 	}
 }
 
-func (c *lokiClient) flushBatch(ctx context.Context, batch []*internal.AlertGroup) {
+func (c *lokiClient) flushBatch(ctx context.Context, batch []alertGroupWithParams) {
 	if len(batch) == 0 {
 		return
 	}
@@ -366,12 +373,12 @@ func (c *lokiClient) flushBatch(ctx context.Context, batch []*internal.AlertGrou
 	logrus.Errorf("Failed to flush batch after %d attempts: %v", c.cfg.Batch.MaxRetries+1, lastErr)
 }
 
-func (c *lokiClient) mergeBatchStreams(batch []*internal.AlertGroup) []stream {
+func (c *lokiClient) mergeBatchStreams(batch []alertGroupWithParams) []stream {
 	streamMap := make(map[string]*stream)
 
-	for _, data := range batch {
-		queryParams := make(map[string]string)
-		streams, err := c.dataToStream(data, queryParams)
+	for _, item := range batch {
+		// Use the preserved query parameters instead of creating an empty map
+		streams, err := c.dataToStream(item.AlertGroup, item.QueryParams)
 		if err != nil {
 			logrus.Errorf("Error converting data to stream: %v", err)
 			continue
@@ -401,7 +408,39 @@ func (c *lokiClient) mergeBatchStreams(batch []*internal.AlertGroup) []stream {
 }
 
 func (c *lokiClient) getStreamKey(labels map[string]string) string {
-	return fmt.Sprintf("%v", labels)
+	if len(labels) == 0 {
+		return "{}"
+	}
+
+	// Sort keys to ensure deterministic output
+	keys := make([]string, 0, len(labels))
+	for k := range labels {
+		keys = append(keys, k)
+	}
+
+	// Use a simple sort for deterministic ordering
+	for i := 0; i < len(keys)-1; i++ {
+		for j := i + 1; j < len(keys); j++ {
+			if keys[i] > keys[j] {
+				keys[i], keys[j] = keys[j], keys[i]
+			}
+		}
+	}
+
+	// Build deterministic string representation
+	var buf bytes.Buffer
+	buf.WriteByte('{')
+	for i, k := range keys {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		buf.WriteString(k)
+		buf.WriteByte(':')
+		buf.WriteString(labels[k])
+	}
+	buf.WriteByte('}')
+
+	return buf.String()
 }
 
 func (c *lokiClient) pushPayload(ctx context.Context, payload payload) error {
@@ -505,8 +544,15 @@ func (c *lokiClient) setAuthAndTenantHeaders(req *http.Request) {
 
 func (c *lokiClient) Save(ctx context.Context, data *internal.AlertGroup) error {
 	if c.batchEnabled {
+		// Extract query parameters from context before sending to batch channel
+		queryParams := middleware.GetQueryParameters(ctx)
+		alertWithParams := alertGroupWithParams{
+			AlertGroup:  data,
+			QueryParams: queryParams,
+		}
+
 		select {
-		case c.alertCh <- data:
+		case c.alertCh <- alertWithParams:
 			return nil
 		case <-ctx.Done():
 			return ctx.Err()
