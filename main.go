@@ -36,6 +36,11 @@ type Args struct {
 	LokiTLSClientCertPath     string
 	LokiTLSClientKeyPath      string
 
+	LokiBatchEnabled      bool
+	LokiBatchSize         int
+	LokiBatchFlushTimeout string
+	LokiBatchMaxRetries   int
+
 	Debug   bool
 	DryRun  bool
 	Version bool
@@ -68,6 +73,11 @@ func main() {
 	flag.StringVar(&args.LokiTLSClientCertPath, "tls-client-cert-path", env.GetEnv("ALERTSNITCH_LOKI_TLS_CLIENT_CERT_PATH", ""), "client TLS certificate file path")
 	flag.StringVar(&args.LokiTLSClientKeyPath, "tls-client-key-path", env.GetEnv("ALERTSNITCH_LOKI_TLS_CLIENT_KEY_PATH", ""), "client TLS private key file path")
 
+	flag.BoolVar(&args.LokiBatchEnabled, "loki-batch-enabled", env.GetEnvAsBool("ALERTSNITCH_LOKI_BATCH_ENABLED", false), "enable Loki batch processing")
+	flag.IntVar(&args.LokiBatchSize, "loki-batch-size", env.GetEnvAsInt("ALERTSNITCH_LOKI_BATCH_SIZE", 100), "Loki batch size")
+	flag.StringVar(&args.LokiBatchFlushTimeout, "loki-batch-flush-timeout", env.GetEnv("ALERTSNITCH_LOKI_BATCH_FLUSH_TIMEOUT", "5s"), "Loki batch flush timeout")
+	flag.IntVar(&args.LokiBatchMaxRetries, "loki-batch-max-retries", env.GetEnvAsInt("ALERTSNITCH_LOKI_BATCH_MAX_RETRIES", 3), "Loki batch max retries")
+
 	flag.Parse()
 
 	if args.Version {
@@ -78,21 +88,30 @@ func main() {
 	if args.Debug {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
+
+	options := map[string]string{
+		"tenant_id":                args.LokiTenantID,
+		"basic_auth_user":          args.LokiBasicAuthUser,
+		"basic_auth_password":      args.LokiBasicAuthPassword,
+		"tls_insecure_skip_verify": args.LokiTLSInsecureSkipVerify,
+		"tls_ca_cert_path":         args.LokiTLSCACertPath,
+		"tls_client_cert_path":     args.LokiTLSClientCertPath,
+		"tls_client_key_path":      args.LokiTLSClientKeyPath,
+	}
+
+	if args.LokiBatchEnabled {
+		options["batch_enabled"] = "true"
+		options["batch_size"] = fmt.Sprintf("%d", args.LokiBatchSize)
+		options["batch_flush_timeout"] = args.LokiBatchFlushTimeout
+		options["batch_max_retries"] = fmt.Sprintf("%d", args.LokiBatchMaxRetries)
+	}
+
 	driver, err := db.Connect(args.DBBackend, db.ConnectionArgs{
 		DSN:                    args.DSN,
 		MaxIdleConns:           args.MaxIdleConns,
 		MaxOpenConns:           args.MaxOpenConns,
 		MaxConnLifetimeSeconds: args.MaxConnLifetimeSeconds,
-
-		Options: map[string]string{
-			"tenant_id":                args.LokiTenantID,
-			"basic_auth_user":          args.LokiBasicAuthUser,
-			"basic_auth_password":      args.LokiBasicAuthPassword,
-			"tls_insecure_skip_verify": args.LokiTLSInsecureSkipVerify,
-			"tls_ca_cert_path":         args.LokiTLSCACertPath,
-			"tls_client_cert_path":     args.LokiTLSClientCertPath,
-			"tls_client_key_path":      args.LokiTLSClientKeyPath,
-		},
+		Options:                options,
 	})
 	if err != nil {
 		fmt.Println("failed to connect to database:", err)

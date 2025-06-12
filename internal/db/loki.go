@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -26,6 +28,11 @@ const (
 	minTimeout       = 1 * time.Second
 	maxTimeout       = 30 * time.Second
 	maxErrorBodySize = 64 * 1024
+
+	defaultBatchSize    = 100
+	defaultFlushTimeout = 5 * time.Second
+	defaultMaxRetries   = 3
+	defaultRetryDelay   = time.Second
 )
 
 type stream struct {
@@ -45,6 +52,13 @@ type payload struct {
 	Streams []stream `json:"streams"`
 }
 
+// alertGroupWithParams wraps an AlertGroup with its associated query parameters
+// This is used for batch processing to preserve query parameters from the original request context
+type alertGroupWithParams struct {
+	AlertGroup  *internal.AlertGroup
+	QueryParams map[string]string
+}
+
 type Config interface {
 	Validate() error
 }
@@ -54,6 +68,7 @@ type LokiConfig struct {
 	Auth           AuthConfig
 	RequestTimeout time.Duration
 	TLS            TLSConfig
+	Batch          BatchConfig
 }
 
 type TLSConfig struct {
@@ -67,6 +82,14 @@ type AuthConfig struct {
 	TenantID          string
 	BasicAuthUser     string
 	BasicAuthPassword string
+}
+
+type BatchConfig struct {
+	Enabled      bool
+	Size         int
+	FlushTimeout time.Duration
+	MaxRetries   int
+	RetryDelay   time.Duration
 }
 
 func (c *LokiConfig) Validate() error {
@@ -142,6 +165,13 @@ func (t TLSConfig) Validate() error {
 type lokiClient struct {
 	client *http.Client
 	cfg    LokiConfig
+
+	batchEnabled bool
+	alertCh      chan alertGroupWithParams
+	stopCh       chan struct{}
+	wg           sync.WaitGroup
+	mu           sync.RWMutex
+	started      bool
 }
 
 func connectLoki(args ConnectionArgs) (*lokiClient, error) {
@@ -153,6 +183,36 @@ func connectLoki(args ConnectionArgs) (*lokiClient, error) {
 	endpoint, err := url.Parse(args.DSN)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse Loki endpoint: %s", err)
+	}
+
+	batchConfig := BatchConfig{
+		Enabled:      false,
+		Size:         defaultBatchSize,
+		FlushTimeout: defaultFlushTimeout,
+		MaxRetries:   defaultMaxRetries,
+		RetryDelay:   defaultRetryDelay,
+	}
+
+	if enabled := args.Options["batch_enabled"]; enabled == "true" {
+		batchConfig.Enabled = true
+
+		if size := args.Options["batch_size"]; size != "" {
+			if val, err := strconv.Atoi(size); err == nil && val > 0 {
+				batchConfig.Size = val
+			}
+		}
+
+		if timeout := args.Options["batch_flush_timeout"]; timeout != "" {
+			if val, err := time.ParseDuration(timeout); err == nil && val > 0 {
+				batchConfig.FlushTimeout = val
+			}
+		}
+
+		if retries := args.Options["batch_max_retries"]; retries != "" {
+			if val, err := strconv.Atoi(retries); err == nil && val >= 0 {
+				batchConfig.MaxRetries = val
+			}
+		}
 	}
 
 	cfg := LokiConfig{
@@ -169,6 +229,7 @@ func connectLoki(args ConnectionArgs) (*lokiClient, error) {
 			ClientCertPath:     args.Options["tls_client_cert_path"],
 			ClientKeyPath:      args.Options["tls_client_key_path"],
 		},
+		Batch: batchConfig,
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -191,18 +252,243 @@ func connectLoki(args ConnectionArgs) (*lokiClient, error) {
 	}
 
 	client := &lokiClient{
-		client: httpClient,
-		cfg:    cfg,
+		client:       httpClient,
+		cfg:          cfg,
+		batchEnabled: cfg.Batch.Enabled,
+		stopCh:       make(chan struct{}),
+	}
+
+	if cfg.Batch.Enabled {
+		client.alertCh = make(chan alertGroupWithParams, cfg.Batch.Size*2)
+		client.startBatchProcessor()
+		logrus.Infof("Loki batch processing enabled: size=%d, timeout=%v", cfg.Batch.Size, cfg.Batch.FlushTimeout)
 	}
 
 	if err := client.Ping(); err != nil {
+		if cfg.Batch.Enabled {
+			client.stopBatchProcessor()
+		}
 		return nil, err
 	}
 
 	return client, nil
 }
 
-// Ping implements Storer interface
+func (c *lokiClient) startBatchProcessor() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.started {
+		return
+	}
+
+	c.started = true
+	c.wg.Add(1)
+
+	go c.processBatches()
+}
+
+func (c *lokiClient) stopBatchProcessor() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if !c.started {
+		return
+	}
+
+	close(c.stopCh)
+	c.wg.Wait()
+	c.started = false
+}
+
+func (c *lokiClient) processBatches() {
+	defer c.wg.Done()
+
+	ticker := time.NewTicker(c.cfg.Batch.FlushTimeout)
+	defer ticker.Stop()
+
+	batch := make([]alertGroupWithParams, 0, c.cfg.Batch.Size)
+
+	for {
+		select {
+		case <-c.stopCh:
+			if len(batch) > 0 {
+				c.flushBatch(context.Background(), batch)
+			}
+			return
+
+		case alert := <-c.alertCh:
+			batch = append(batch, alert)
+			if len(batch) >= c.cfg.Batch.Size {
+				c.flushBatch(context.Background(), batch)
+				batch = batch[:0]
+			}
+
+		case <-ticker.C:
+			if len(batch) > 0 {
+				c.flushBatch(context.Background(), batch)
+				batch = batch[:0]
+			}
+		}
+	}
+}
+
+func (c *lokiClient) flushBatch(ctx context.Context, batch []alertGroupWithParams) {
+	if len(batch) == 0 {
+		return
+	}
+
+	start := time.Now()
+	logrus.Debugf("Flushing batch of %d alert groups", len(batch))
+
+	mergedStreams := c.mergeBatchStreams(batch)
+	if len(mergedStreams) == 0 {
+		return
+	}
+
+	payload := payload{Streams: mergedStreams}
+
+	var lastErr error
+	for attempt := 0; attempt <= c.cfg.Batch.MaxRetries; attempt++ {
+		if attempt > 0 {
+			delay := c.cfg.Batch.RetryDelay * time.Duration(attempt)
+			time.Sleep(delay)
+			logrus.Warnf("Retrying batch flush, attempt %d/%d", attempt, c.cfg.Batch.MaxRetries)
+		}
+
+		ctx, cancel := context.WithTimeout(ctx, c.cfg.RequestTimeout)
+		err := c.pushPayload(ctx, payload)
+		cancel()
+
+		if err == nil {
+			duration := time.Since(start)
+			logrus.Debugf("Successfully flushed batch of %d alert groups in %v", len(batch), duration)
+			return
+		}
+
+		lastErr = err
+		logrus.Errorf("Failed to flush batch (attempt %d/%d): %v", attempt+1, c.cfg.Batch.MaxRetries+1, err)
+	}
+
+	logrus.Errorf("Failed to flush batch after %d attempts: %v", c.cfg.Batch.MaxRetries+1, lastErr)
+}
+
+func (c *lokiClient) mergeBatchStreams(batch []alertGroupWithParams) []stream {
+	streamMap := make(map[string]*stream)
+
+	for _, item := range batch {
+		// Use the preserved query parameters instead of creating an empty map
+		streams, err := c.dataToStream(item.AlertGroup, item.QueryParams)
+		if err != nil {
+			logrus.Errorf("Error converting data to stream: %v", err)
+			continue
+		}
+
+		for _, s := range streams {
+			key := c.getStreamKey(s.Stream)
+			if existing, exists := streamMap[key]; exists {
+				existing.Values = append(existing.Values, s.Values...)
+			} else {
+				streamCopy := stream{
+					Stream: s.Stream,
+					Values: make([]row, len(s.Values)),
+				}
+				copy(streamCopy.Values, s.Values)
+				streamMap[key] = &streamCopy
+			}
+		}
+	}
+
+	result := make([]stream, 0, len(streamMap))
+	for _, s := range streamMap {
+		result = append(result, *s)
+	}
+
+	return result
+}
+
+func (c *lokiClient) getStreamKey(labels map[string]string) string {
+	if len(labels) == 0 {
+		return "{}"
+	}
+
+	// Sort keys to ensure deterministic output
+	keys := make([]string, 0, len(labels))
+	for k := range labels {
+		keys = append(keys, k)
+	}
+
+	// Use a simple sort for deterministic ordering
+	for i := 0; i < len(keys)-1; i++ {
+		for j := i + 1; j < len(keys); j++ {
+			if keys[i] > keys[j] {
+				keys[i], keys[j] = keys[j], keys[i]
+			}
+		}
+	}
+
+	// Build deterministic string representation
+	var buf bytes.Buffer
+	buf.WriteByte('{')
+	for i, k := range keys {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		buf.WriteString(k)
+		buf.WriteByte(':')
+		buf.WriteString(labels[k])
+	}
+	buf.WriteByte('}')
+
+	return buf.String()
+}
+
+func (c *lokiClient) pushPayload(ctx context.Context, payload payload) error {
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("error marshalling Loki request: %w", err)
+	}
+
+	uri := c.cfg.Url.JoinPath(lokiAPIPath, "push")
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uri.String(), bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return fmt.Errorf("error creating Loki push request: %w", err)
+	}
+
+	c.setAuthAndTenantHeaders(req)
+
+	res, err := c.client.Do(req)
+	if res != nil {
+		defer func() {
+			if err := res.Body.Close(); err != nil {
+				logrus.Errorf("failed to close response body: %s", err)
+			}
+		}()
+	}
+	if err != nil {
+		return fmt.Errorf("error pushing data to Loki: %w", err)
+	}
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		limitedReader := io.LimitReader(res.Body, maxErrorBodySize)
+		byt, readErr := io.ReadAll(limitedReader)
+		if readErr != nil {
+			logrus.Errorf("Failed to read error response body: %v", readErr)
+			return fmt.Errorf("received non-2XX response from Loki (status: %d) and failed to read response body: %w", res.StatusCode, readErr)
+		}
+
+		if len(byt) > 0 {
+			logrus.Errorf("Loki error response - Status: %d, Body: %s", res.StatusCode, string(byt))
+			return fmt.Errorf("Loki returned error (status: %d): %s", res.StatusCode, string(byt))
+		} else {
+			logrus.Errorf("Loki error response - Status: %d, Empty body", res.StatusCode)
+			return fmt.Errorf("Loki returned error with empty body (status: %d)", res.StatusCode)
+		}
+	}
+
+	return nil
+}
+
 func (c *lokiClient) Ping() error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.cfg.RequestTimeout)
 	defer cancel()
@@ -256,8 +542,26 @@ func (c *lokiClient) setAuthAndTenantHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
 }
 
-// Save implements Storer interface
 func (c *lokiClient) Save(ctx context.Context, data *internal.AlertGroup) error {
+	if c.batchEnabled {
+		// Extract query parameters from context before sending to batch channel
+		queryParams := middleware.GetQueryParameters(ctx)
+		alertWithParams := alertGroupWithParams{
+			AlertGroup:  data,
+			QueryParams: queryParams,
+		}
+
+		select {
+		case c.alertCh <- alertWithParams:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			logrus.Warn("Alert channel is full, dropping alert")
+			return fmt.Errorf("alert queue is full")
+		}
+	}
+
 	queryParams := middleware.GetQueryParameters(ctx)
 	logrus.Debugf("Query parameters: %v", queryParams)
 
@@ -269,56 +573,18 @@ func (c *lokiClient) Save(ctx context.Context, data *internal.AlertGroup) error 
 	payload := payload{
 		Streams: streams,
 	}
-	payloadBytes, err := json.Marshal(payload)
-	logrus.Debugf("Loki request payload: %v", string(payloadBytes))
 
-	if err != nil {
-		return fmt.Errorf("error marshalling Loki request: %w", err)
-	}
+	return c.pushPayload(ctx, payload)
+}
 
-	uri := c.cfg.Url.JoinPath(lokiAPIPath, "push")
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uri.String(), bytes.NewBuffer(payloadBytes))
-	if err != nil {
-		return fmt.Errorf("error creating Loki push request: %w", err)
-	}
-
-	c.setAuthAndTenantHeaders(req)
-
-	res, err := c.client.Do(req)
-	if res != nil {
-		defer func() {
-			if err := res.Body.Close(); err != nil {
-				logrus.Errorf("failed to close response body: %s", err)
-			}
-		}()
-	}
-	if err != nil {
-		return fmt.Errorf("error pushing data to Loki: %w", err)
-	}
-
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		limitedReader := io.LimitReader(res.Body, maxErrorBodySize)
-		byt, readErr := io.ReadAll(limitedReader)
-		if readErr != nil {
-			logrus.Errorf("Failed to read error response body: %v", readErr)
-			return fmt.Errorf("received non-2XX response from Loki (status: %d) and failed to read response body: %w", res.StatusCode, readErr)
-		}
-
-		if len(byt) > 0 {
-			logrus.Errorf("Loki error response - Status: %d, Body: %s", res.StatusCode, string(byt))
-			return fmt.Errorf("Loki returned error (status: %d): %s", res.StatusCode, string(byt))
-		} else {
-			logrus.Errorf("Loki error response - Status: %d, Empty body", res.StatusCode)
-			return fmt.Errorf("Loki returned error with empty body (status: %d)", res.StatusCode)
-		}
-	}
-
-	logrus.Debugf("Save data to Loki: %v", fmt.Sprintf("%+v", data))
+func (c *lokiClient) CheckModel() error {
 	return nil
 }
 
-// CheckModel implements Storer interface
-func (c *lokiClient) CheckModel() error {
+func (c *lokiClient) Close() error {
+	if c.batchEnabled {
+		c.stopBatchProcessor()
+	}
 	return nil
 }
 
@@ -431,9 +697,10 @@ func buildStreamLabels(data *internal.AlertGroup, extraLabels map[string]string)
 		}
 	}
 
-	// Add basic labels
+	streamLabels["service_name"] = "alertsnitch"
 	streamLabels["receiver"] = data.Receiver
 	streamLabels["status"] = data.Status
+	streamLabels["alert_name"] = data.CommonLabels["alertname"]
 
 	return streamLabels
 }
