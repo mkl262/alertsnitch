@@ -164,6 +164,12 @@ route:
 - **ALERTSNITCH_LOKI_TLS_CLIENT_CERT_PATH** Client TLS certificate file path
 - **ALERTSNITCH_LOKI_TLS_CLIENT_KEY_PATH** Client TLS private key file path
 
+#### Loki Batch Processing Configuration
+- **ALERTSNITCH_LOKI_BATCH_ENABLED** Enable batch processing for improved performance (default: "false")
+- **ALERTSNITCH_LOKI_BATCH_SIZE** Number of alerts to batch before sending (default: 100)
+- **ALERTSNITCH_LOKI_BATCH_FLUSH_TIMEOUT** Maximum time to wait before sending a partial batch (default: "5s")
+- **ALERTSNITCH_LOKI_BATCH_MAX_RETRIES** Maximum number of retry attempts for failed batches (default: 3)
+
 
 ### Readiness probe
 
