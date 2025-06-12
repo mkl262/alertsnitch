@@ -164,6 +164,19 @@ route:
 - **ALERTSNITCH_LOKI_TLS_CLIENT_CERT_PATH** Client TLS certificate file path
 - **ALERTSNITCH_LOKI_TLS_CLIENT_KEY_PATH** Client TLS private key file path
 
+#### Loki Proxy Configuration (Prometheus Style)
+AlertSnitch automatically respects the standard proxy environment variables, just like Prometheus:
+- **HTTP_PROXY** / **http_proxy** - Proxy URL for HTTP requests
+- **HTTPS_PROXY** / **https_proxy** - Proxy URL for HTTPS requests  
+- **NO_PROXY** / **no_proxy** - Comma-separated list of hosts to bypass proxy
+
+**Example usage:**
+```bash
+export HTTP_PROXY=http://proxy.company.com:8080
+export HTTPS_PROXY=http://proxy.company.com:8080
+export NO_PROXY=localhost,127.0.0.1,.local
+```
+
 #### Loki Batch Processing Configuration
 - **ALERTSNITCH_LOKI_BATCH_ENABLED** Enable batch processing for improved performance (default: "false")
 - **ALERTSNITCH_LOKI_BATCH_SIZE** Number of alerts to batch before sending (default: 100)
