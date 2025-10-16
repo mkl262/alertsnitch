@@ -16,7 +16,7 @@ test_mysql:
     paths:
     - ${CI_PROJECT_DIR}/.cache/go-build
   services:
-  - mysql:5.7
+  - mysql:8.0
   variables:
     MYSQL_DATABASE: alertsnitch
     MYSQL_ROOT_PASSWORD: mysql
