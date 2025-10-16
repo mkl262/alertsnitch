@@ -6,7 +6,7 @@ import (
 )
 
 // DSNVar Environment variable in which the DSN is stored
-const DSNVar = "ALERTSNITCH_BACKEND_ENPOINT"
+const DSNVar = "ALERTSNITCH_BACKEND_ENDPOINT"
 
 // Storer saves an Alert Data into a persistence engine
 type Storer interface {
