@@ -1,14 +1,15 @@
-FROM golang:1.24.4-alpine AS builder
+FROM golang:1.25 AS builder
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+COPY . .
 
 RUN go mod download
 
-COPY . .
-
-RUN CGO_ENABLED=0 go build -o alertsnitch
+RUN CGO_ENABLED=0 go build -v -o alertsnitch \
+    -ldflags="-X gitlab.com/yakshaving.art/alertsnitch/version.Version=$(git describe --tags --abbrev=0) \
+              -X gitlab.com/yakshaving.art/alertsnitch/version.Date=$(date +%FT%T%z) \
+              -X gitlab.com/yakshaving.art/alertsnitch/version.Commit=$(git rev-parse HEAD)"
 
 # Final stage
 FROM scratch

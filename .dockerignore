@@ -2,10 +2,21 @@
 
 tmp*
 
+*.tar
+
+alertsnitch
+
+coverage.out
+
+configs/
+dashboards/
+db.d/
+helm/
+k6/
+script.d/
+
 docker-compose.yml
 dockerfile
 Dockerfile.*
 
 README.md
-
-*.tar

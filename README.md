@@ -58,7 +58,7 @@ This is a sample of a DSN that would connect to the local host over a Unix socke
 
 ```bash
 export ALERTSNITCH_BACKEND="mysql"
-export ALERTSNITCH_BACKEND_ENDPOINT="${MYSQL_USER}:${MYSQL_PASSWORD}@/${MYSQL_DATABASE}"
+export ALERTSNITCH_BACKEND_ENDPOINT="${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_HOST}:${MYSQL_PORT})/${MYSQL_SCHEMA}"
 ```
 
 ### Postgres
