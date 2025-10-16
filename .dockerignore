@@ -1,0 +1,11 @@
+.idea
+
+tmp*
+
+docker-compose.yml
+dockerfile
+Dockerfile.*
+
+README.md
+
+*.tar
