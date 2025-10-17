@@ -45,7 +45,7 @@ To run AlertSnitch requires one of the following backends:
 
 For MySQL/Postgres, the database must be initialized with the AlertSnitch model.
 AlertSnitch will not go online until the model is up to date with the
-expected one. Bootstrapping scripts are provided in the [scripts](./script.d)
+expected one. Bootstrapping scripts are provided in the [database](./database)
 folder.
 
 ## Configuration
@@ -221,7 +221,7 @@ AlertSnitch writes alerts in such a way that they can be explored using:
 - Grafana's PostgreSQL Data Source plugin  
 - Grafana's Loki Data Source
 
-Sample dashboards are provided in the [dashboards](./dashboards) folder for both SQL and Loki backends.
+Sample dashboards are provided in the [dashboards](./example/grafana/dashboards) folder for both SQL and Loki backends.
 
 ## Testing locally
 

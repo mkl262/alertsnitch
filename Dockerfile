@@ -14,6 +14,8 @@ RUN CGO_ENABLED=0 go build -v -o alertsnitch \
 # Final stage
 FROM scratch
 
+COPY ./database /database/
+
 COPY --from=builder /app/alertsnitch /alertsnitch
 
 EXPOSE 9567

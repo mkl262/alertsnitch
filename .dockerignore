@@ -8,15 +8,10 @@ alertsnitch
 
 coverage.out
 
-configs/
-dashboards/
-db.d/
+example/
 helm/
-k6/
-script.d/
+tests/
 
-docker-compose.yml
-dockerfile
-Dockerfile.*
+Dockerfile
 
 README.md
