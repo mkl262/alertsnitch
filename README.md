@@ -58,21 +58,21 @@ This is a sample of a DSN that would connect to the local host over a Unix socke
 
 ```bash
 export ALERTSNITCH_BACKEND="mysql"
-export ALERTSNITCH_BACKEND_ENPOINT="${MYSQL_USER}:${MYSQL_PASSWORD}@/${MYSQL_DATABASE}"
+export ALERTSNITCH_BACKEND_ENDPOINT="${MYSQL_USER}:${MYSQL_PASSWORD}@/${MYSQL_DATABASE}"
 ```
 
 ### Postgres
 
 ```bash
 export ALERTSNITCH_BACKEND="postgres"
-export ALERTSNITCH_BACKEND_ENPOINT="sslmode=disable user=${PGUSER} password=${PGPASSWORD} host=${PGHOST} database=${PGDATABASE}"
+export ALERTSNITCH_BACKEND_ENDPOINT="sslmode=disable user=${PGUSER} password=${PGPASSWORD} host=${PGHOST} database=${PGDATABASE}"
 ```
 
 ### Loki
 
 ```bash
 export ALERTSNITCH_BACKEND="loki"
-export ALERTSNITCH_BACKEND_ENPOINT="http://loki:3100"
+export ALERTSNITCH_BACKEND_ENDPOINT="http://loki:3100"
 export ALERTSNITCH_LOKI_TENANT_ID="tenant1"  # Optional
 export ALERTSNITCH_LOKI_BASIC_AUTH_USER="user"  # Optional
 export ALERTSNITCH_LOKI_BASIC_AUTH_PASSWORD="pass"  # Optional
@@ -149,7 +149,7 @@ route:
 ### Environment variables
 
 #### Basic Configuration
-- **ALERTSNITCH_BACKEND_ENPOINT** *required* database/loki connection endpoint
+- **ALERTSNITCH_BACKEND_ENDPOINT** *required* database/loki connection endpoint
 - **ALERTSNITCH_ADDR** same as **-listen.address**
 - **ALERTSNITCH_BACKEND** same as **-database-backend**
 
