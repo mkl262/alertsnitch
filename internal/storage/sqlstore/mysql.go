@@ -41,17 +41,17 @@ func (d *MySQL) Save(ctx context.Context, data *internal.AlertGroup, _ map[strin
 			return fmt.Errorf("failed to get AlertGroups inserted id: %w", err)
 		}
 
-		if err := insertKV(ctx, tx, "GroupLabel (alertGroupID, GroupLabel, Value)", alertGroupID, data.GroupLabels); err != nil {
+		if err := insertGroupLabelsMySQL(ctx, tx, alertGroupID, data.GroupLabels); err != nil {
 			return err
 		}
-		if err := insertKV(ctx, tx, "CommonLabel (alertGroupID, Label, Value)", alertGroupID, data.CommonLabels); err != nil {
+		if err := insertCommonLabelsMySQL(ctx, tx, alertGroupID, data.CommonLabels); err != nil {
 			return err
 		}
-		if err := insertKV(ctx, tx, "CommonAnnotation (alertGroupID, Annotation, Value)", alertGroupID, data.CommonAnnotations); err != nil {
+		if err := insertCommonAnnotationsMySQL(ctx, tx, alertGroupID, data.CommonAnnotations); err != nil {
 			return err
 		}
 
-		return insertAlerts(ctx, tx, alertGroupID, data.Alerts)
+		return insertAlertsMySQL(ctx, tx, alertGroupID, data.Alerts)
 	})
 	metrics.RecordSaveOutcome(data.Receiver, data.Status, len(data.Alerts), err)
 	return err
@@ -59,7 +59,7 @@ func (d *MySQL) Save(ctx context.Context, data *internal.AlertGroup, _ map[strin
 
 func (*MySQL) String() string { return "mysql database driver" }
 
-func insertAlerts(ctx context.Context, tx *sql.Tx, alertGroupID int64, alerts []internal.Alert) error {
+func insertAlertsMySQL(ctx context.Context, tx *sql.Tx, alertGroupID int64, alerts []internal.Alert) error {
 	for _, alert := range alerts {
 		var (
 			result sql.Result
@@ -84,24 +84,86 @@ func insertAlerts(ctx context.Context, tx *sql.Tx, alertGroupID int64, alerts []
 			return fmt.Errorf("failed to get Alert inserted id: %w", err)
 		}
 
-		if err := insertKV(ctx, tx, "AlertLabel (AlertID, Label, Value)", alertID, alert.Labels); err != nil {
+		if err := insertAlertLabelsMySQL(ctx, tx, alertID, alert.Labels); err != nil {
 			return err
 		}
-		if err := insertKV(ctx, tx, "AlertAnnotation (AlertID, Annotation, Value)", alertID, alert.Annotations); err != nil {
+		if err := insertAlertAnnotationsMySQL(ctx, tx, alertID, alert.Annotations); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// insertKV inserts a map of key/value rows into a (id, key, value) table using
-// MySQL placeholder syntax. table is a compile-time constant supplied by this
-// package, never user input.
-func insertKV(ctx context.Context, tx *sql.Tx, table string, id int64, kv map[string]string) error {
+func insertGroupLabelsMySQL(ctx context.Context, tx *sql.Tx, alertGroupID int64, kv map[string]string) error {
 	for k, v := range kv {
-		//nolint:gosec // table is a package-internal constant, not user input
-		if _, err := tx.ExecContext(ctx, "INSERT INTO "+table+" VALUES (?, ?, ?)", id, k, v); err != nil {
-			return fmt.Errorf("failed to insert into %s: %w", table, err)
+		kvID, err := mysqlGetLabelKVID(ctx, tx, k, v)
+		if err != nil {
+			return fmt.Errorf("failed to resolve GroupLabel LabelKV: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO GroupLabel (alertGroupID, LabelKVID)
+			VALUES (?, ?)`, alertGroupID, kvID); err != nil {
+			return fmt.Errorf("failed to insert into GroupLabel: %w", err)
+		}
+	}
+	return nil
+}
+
+func insertCommonLabelsMySQL(ctx context.Context, tx *sql.Tx, alertGroupID int64, kv map[string]string) error {
+	for k, v := range kv {
+		kvID, err := mysqlGetLabelKVID(ctx, tx, k, v)
+		if err != nil {
+			return fmt.Errorf("failed to resolve CommonLabel LabelKV: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO CommonLabel (alertGroupID, LabelKVID)
+			VALUES (?, ?)`, alertGroupID, kvID); err != nil {
+			return fmt.Errorf("failed to insert into CommonLabel: %w", err)
+		}
+	}
+	return nil
+}
+
+func insertCommonAnnotationsMySQL(ctx context.Context, tx *sql.Tx, alertGroupID int64, kv map[string]string) error {
+	for k, v := range kv {
+		kvID, err := mysqlGetAnnotationKVID(ctx, tx, k, v)
+		if err != nil {
+			return fmt.Errorf("failed to resolve CommonAnnotation AnnotationKV: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO CommonAnnotation (alertGroupID, AnnotationKVID)
+			VALUES (?, ?)`, alertGroupID, kvID); err != nil {
+			return fmt.Errorf("failed to insert into CommonAnnotation: %w", err)
+		}
+	}
+	return nil
+}
+
+func insertAlertLabelsMySQL(ctx context.Context, tx *sql.Tx, alertID int64, kv map[string]string) error {
+	for k, v := range kv {
+		kvID, err := mysqlGetLabelKVID(ctx, tx, k, v)
+		if err != nil {
+			return fmt.Errorf("failed to resolve AlertLabel LabelKV: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO AlertLabel (AlertID, LabelKVID)
+			VALUES (?, ?)`, alertID, kvID); err != nil {
+			return fmt.Errorf("failed to insert into AlertLabel: %w", err)
+		}
+	}
+	return nil
+}
+
+func insertAlertAnnotationsMySQL(ctx context.Context, tx *sql.Tx, alertID int64, kv map[string]string) error {
+	for k, v := range kv {
+		kvID, err := mysqlGetAnnotationKVID(ctx, tx, k, v)
+		if err != nil {
+			return fmt.Errorf("failed to resolve AlertAnnotation AnnotationKV: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO AlertAnnotation (AlertID, AnnotationKVID)
+			VALUES (?, ?)`, alertID, kvID); err != nil {
+			return fmt.Errorf("failed to insert into AlertAnnotation: %w", err)
 		}
 	}
 	return nil
