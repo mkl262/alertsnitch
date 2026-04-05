@@ -16,7 +16,7 @@ import (
 )
 
 // SupportedModel is the database schema version this application understands.
-const SupportedModel = "0.2.0"
+const SupportedModel = "0.3.0"
 
 // Config holds connection-pool settings shared by the SQL backends.
 type Config struct {

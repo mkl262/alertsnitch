@@ -30,11 +30,24 @@ func ConnectPostgres(cfg Config) (*Postgres, error) {
 // Save persists an alert group. extraLabels is ignored by SQL backends.
 func (d *Postgres) Save(ctx context.Context, data *internal.AlertGroup, _ map[string]string) error {
 	err := d.unitOfWork(ctx, func(tx *sql.Tx) error {
+		receiverID, err := postgresGetReceiverID(ctx, tx, data.Receiver)
+		if err != nil {
+			return fmt.Errorf("failed to resolve AlertGroup AlertGroupReceiver: %w", err)
+		}
+		externalURLID, err := postgresGetExternalURLID(ctx, tx, data.ExternalURL)
+		if err != nil {
+			return fmt.Errorf("failed to resolve AlertGroup AlertGroupExternalURL: %w", err)
+		}
+		groupKeyID, err := postgresGetKeyID(ctx, tx, data.GroupKey)
+		if err != nil {
+			return fmt.Errorf("failed to resolve AlertGroup AlertGroupKey: %w", err)
+		}
+
 		var alertGroupID int64
-		err := tx.QueryRowContext(ctx, `
-			INSERT INTO AlertGroup (time, receiver, status, externalURL, groupKey)
+		err = tx.QueryRowContext(ctx, `
+			INSERT INTO AlertGroup (time, status, ReceiverID, ExternalURLID, KeyID)
 			VALUES (current_timestamp, $1, $2, $3, $4) RETURNING ID`,
-			data.Receiver, data.Status, data.ExternalURL, data.GroupKey).Scan(&alertGroupID)
+			data.Status, receiverID, externalURLID, groupKeyID).Scan(&alertGroupID)
 		if err != nil {
 			return fmt.Errorf("failed to insert into AlertGroups: %w", err)
 		}

@@ -30,9 +30,22 @@ func ConnectMySQL(cfg Config) (*MySQL, error) {
 // Save persists an alert group. extraLabels is ignored by SQL backends.
 func (d *MySQL) Save(ctx context.Context, data *internal.AlertGroup, _ map[string]string) error {
 	err := d.unitOfWork(ctx, func(tx *sql.Tx) error {
+		receiverID, err := mysqlGetReceiverID(ctx, tx, data.Receiver)
+		if err != nil {
+			return fmt.Errorf("failed to resolve AlertGroup AlertGroupReceiver: %w", err)
+		}
+		externalURLID, err := mysqlGetExternalURLID(ctx, tx, data.ExternalURL)
+		if err != nil {
+			return fmt.Errorf("failed to resolve AlertGroup AlertGroupExternalURL: %w", err)
+		}
+		groupKeyID, err := mysqlGetKeyID(ctx, tx, data.GroupKey)
+		if err != nil {
+			return fmt.Errorf("failed to resolve AlertGroup AlertGroupKey: %w", err)
+		}
+
 		r, err := tx.ExecContext(ctx, `
-			INSERT INTO AlertGroup (time, receiver, status, externalURL, groupKey)
-			VALUES (now(), ?, ?, ?, ?)`, data.Receiver, data.Status, data.ExternalURL, data.GroupKey)
+			INSERT INTO AlertGroup (time, status, ReceiverID, ExternalURLID, KeyID)
+			VALUES (now(), ?, ?, ?, ?)`, data.Status, receiverID, externalURLID, groupKeyID)
 		if err != nil {
 			return fmt.Errorf("failed to insert into AlertGroups: %w", err)
 		}
