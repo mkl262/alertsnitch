@@ -1,4 +1,6 @@
-{{- if and .Values.persistence.enabled (not .Values.persistence.existingClaim) }}
+{{- /* StatefulSet provisions per-pod PVCs via volumeClaimTemplates, so this
+       standalone shared PVC is only for the Deployment workload. */ -}}
+{{- if and (eq .Values.controller.kind "Deployment") .Values.persistence.enabled (not .Values.persistence.existingClaim) }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

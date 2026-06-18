@@ -5,6 +5,14 @@ image:
   pullPolicy: IfNotPresent
   # tag: "" # Defaults to Chart.appVersion if not set
 
+# Workload controller: "Deployment" (default) or "StatefulSet".
+# Use StatefulSet when running multiple replicas WITH the WAL enabled: each pod
+# then gets its own persistent volume via volumeClaimTemplates, instead of
+# contending for a single ReadWriteOnce PVC. A headless service is created
+# automatically for stable per-pod DNS identity.
+controller:
+  kind: Deployment
+
 service:
   type: ClusterIP
   port: 9567
