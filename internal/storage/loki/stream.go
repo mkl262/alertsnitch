@@ -4,32 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/mikehsu0618/alertsnitch/internal"
 )
-
-// defaultAllowedLabels is the built-in set of alert labels promoted to Loki
-// stream labels when the operator does not configure an explicit allow-list.
-var defaultAllowedLabels = []string{
-	"severity", "priority", "level", "instance", "job", "team", "env",
-	"service", "pod", "namespace", "node", "container", "cluster",
-}
-
-// allowedLabelSet builds a lookup set from the configured labels, falling back
-// to defaultAllowedLabels when none are configured.
-func allowedLabelSet(configured []string) map[string]bool {
-	labels := configured
-	if len(labels) == 0 {
-		labels = defaultAllowedLabels
-	}
-	set := make(map[string]bool, len(labels))
-	for _, l := range labels {
-		set[l] = true
-	}
-	return set
-}
 
 func cloneLabels(labels map[string]string) map[string]string {
 	clone := make(map[string]string, len(labels))
@@ -58,7 +40,7 @@ func (c *Client) dataToStream(data *internal.AlertGroup, extraLabels map[string]
 
 	streams := make([]stream, 0, len(byStatus))
 	for status, alerts := range byStatus {
-		s, err := createStreamForStatus(status, alerts, data, baseLabels)
+		s, err := c.createStreamForStatus(status, alerts, data, baseLabels)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +49,7 @@ func (c *Client) dataToStream(data *internal.AlertGroup, extraLabels map[string]
 	return streams, nil
 }
 
-func createStreamForStatus(status string, alerts []internal.Alert, data *internal.AlertGroup, baseLabels map[string]string) (stream, error) {
+func (c *Client) createStreamForStatus(status string, alerts []internal.Alert, data *internal.AlertGroup, baseLabels map[string]string) (stream, error) {
 	streamLabels := cloneLabels(baseLabels)
 	streamLabels["alert_status"] = status
 
@@ -104,26 +86,37 @@ func createStreamForStatus(status string, alerts []internal.Alert, data *interna
 			return stream{}, fmt.Errorf("error marshaling FlattenAlertGroup: %w", err)
 		}
 
-		s.Values = append(s.Values, row{At: timestamp, Val: string(jsonData)})
+		var meta map[string]string
+		if c.cfg.StructuredMetadata {
+			meta = buildAlertMetadata(alert)
+		}
+		s.Values = append(s.Values, row{At: timestamp, Val: string(jsonData), Meta: meta})
 	}
 
+	// Colliding StartsAt values within a group are common; keep every entry by
+	// giving each a strictly increasing, unique nanosecond timestamp.
+	s.Values = ensureMonotonic(s.Values)
 	return s, nil
 }
 
 func (c *Client) buildStreamLabels(data *internal.AlertGroup, extraLabels map[string]string) map[string]string {
 	streamLabels := make(map[string]string, len(extraLabels)+len(data.CommonLabels)+len(data.GroupLabels)+4)
 
+	// extraLabels are operator-chosen (webhook query parameters) and bypass the
+	// allow-list by design, but their NAMES still flow from outside the process,
+	// so they are validated below to keep an invalid one (e.g. ?app-id=x) from
+	// making Loki reject the whole push.
 	for key, value := range extraLabels {
-		streamLabels[key] = value
+		putStreamLabel(streamLabels, key, value)
 	}
 	for label, value := range data.CommonLabels {
 		if c.allowedLabels[label] {
-			streamLabels[label] = value
+			putStreamLabel(streamLabels, label, value)
 		}
 	}
 	for label, value := range data.GroupLabels {
 		if c.allowedLabels[label] {
-			streamLabels[label] = value
+			putStreamLabel(streamLabels, label, value)
 		}
 	}
 
@@ -133,6 +126,20 @@ func (c *Client) buildStreamLabels(data *internal.AlertGroup, extraLabels map[st
 	streamLabels["alert_name"] = data.CommonLabels["alertname"]
 
 	return streamLabels
+}
+
+// putStreamLabel adds a label only if its name is a valid Loki label name,
+// dropping (with a debug log) any that would otherwise cause Loki to reject the
+// entire push. Empty values are skipped — an empty stream label is noise.
+func putStreamLabel(dst map[string]string, name, value string) {
+	if value == "" {
+		return
+	}
+	if !isValidLabelName(name) {
+		logrus.Debugf("dropping invalid Loki stream label name %q", name)
+		return
+	}
+	dst[name] = value
 }
 
 // streamKey is a deterministic string identity for a label set, used to merge
@@ -156,7 +163,10 @@ func streamKey(labels map[string]string) string {
 		}
 		buf.WriteString(k)
 		buf.WriteByte(':')
-		buf.WriteString(labels[k])
+		// Quote the value so a value containing ':' or ',' cannot alias a
+		// different label set (label names are already restricted to a safe
+		// grammar, but values are free-form).
+		buf.WriteString(strconv.Quote(labels[k]))
 	}
 	buf.WriteByte('}')
 	return buf.String()

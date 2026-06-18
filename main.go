@@ -50,7 +50,11 @@ type Args struct {
 	LokiBatchFlushTimeout string
 	LokiBatchMaxRetries   int
 
-	LokiAllowedLabels string
+	LokiWALEnabled bool
+	LokiWALDir     string
+
+	LokiAllowedLabels      string
+	LokiStructuredMetadata bool
 
 	Debug   bool
 	Version bool
@@ -114,7 +118,11 @@ func parseArgs() Args {
 	flag.StringVar(&args.LokiBatchFlushTimeout, "loki-batch-flush-timeout", env.GetEnv("ALERTSNITCH_LOKI_BATCH_FLUSH_TIMEOUT", "5s"), "Loki batch flush timeout")
 	flag.IntVar(&args.LokiBatchMaxRetries, "loki-batch-max-retries", env.GetEnvAsInt("ALERTSNITCH_LOKI_BATCH_MAX_RETRIES", 3), "Loki batch max retries")
 
+	flag.BoolVar(&args.LokiWALEnabled, "loki-wal-enabled", env.GetEnvAsBool("ALERTSNITCH_LOKI_WAL_ENABLED", false), "enable the Loki write-ahead log for crash-durable batch buffering (requires batch mode)")
+	flag.StringVar(&args.LokiWALDir, "loki-wal-dir", env.GetEnv("ALERTSNITCH_LOKI_WAL_DIR", ""), "directory for the Loki write-ahead log (required when WAL is enabled)")
+
 	flag.StringVar(&args.LokiAllowedLabels, "loki-allowed-labels", env.GetEnv("ALERTSNITCH_LOKI_ALLOWED_LABELS", ""), "comma-separated list of labels to extract as stream labels (e.g., severity,priority,env)")
+	flag.BoolVar(&args.LokiStructuredMetadata, "loki-structured-metadata", env.GetEnvAsBool("ALERTSNITCH_LOKI_STRUCTURED_METADATA", false), "attach high-cardinality fields (fingerprint, pod, instance, ...) as Loki structured metadata (requires Loki 3.x schema v13+)")
 
 	flag.Parse()
 	return args
@@ -191,8 +199,13 @@ func buildLokiConfig(args Args) (loki.Config, error) {
 			ClientCertPath:     args.LokiTLSClientCertPath,
 			ClientKeyPath:      args.LokiTLSClientKeyPath,
 		},
-		Batch:         batch,
-		AllowedLabels: allowed,
+		Batch: batch,
+		WAL: loki.WALConfig{
+			Enabled: args.LokiWALEnabled,
+			Dir:     args.LokiWALDir,
+		},
+		AllowedLabels:      allowed,
+		StructuredMetadata: args.LokiStructuredMetadata,
 	}, nil
 }
 

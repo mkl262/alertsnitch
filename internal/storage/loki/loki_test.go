@@ -274,6 +274,50 @@ func TestSave_SyncConversionFailureNotCountedSaved(t *testing.T) {
 	assert.Equal(t, saved, testutil.ToFloat64(metrics.AlertsSavedTotal.WithLabelValues("sync-conv", "firing")), "conversion failure must not be counted saved")
 }
 
+// TestSave_BatchWALReplaysRecoveredAlerts proves the durability guarantee: an
+// alert left unacknowledged in the WAL by a previous "process" is recovered and
+// delivered when a new client starts, then acknowledged so it never replays
+// again.
+func TestSave_BatchWALReplaysRecoveredAlerts(t *testing.T) {
+	dir := t.TempDir()
+
+	// Simulate a crash: a previous process durably logged an alert but died
+	// before flushing it (no ack).
+	seed, err := openWAL(dir)
+	require.NoError(t, err)
+	_, err = seed.append(walGroup("wal-replay"), map[string]string{"source": "am"})
+	require.NoError(t, err)
+	require.NoError(t, seed.close())
+
+	fake := newFakeLoki()
+	defer fake.close()
+
+	cfg := testConfig(t, fake.server.URL)
+	cfg.Batch = DefaultBatchConfig()
+	cfg.Batch.Enabled = true
+	cfg.Batch.FlushTimeout = 50 * time.Millisecond
+	cfg.WAL = WALConfig{Enabled: true, Dir: dir}
+
+	saved := testutil.ToFloat64(metrics.AlertsSavedTotal.WithLabelValues("wal-replay", "firing"))
+
+	client, err := New(cfg)
+	require.NoError(t, err)
+
+	// The recovered alert is replayed and shipped without any new Save call.
+	require.Eventually(t, func() bool {
+		return len(fake.streams()) > 0
+	}, 2*time.Second, 10*time.Millisecond, "recovered alert must be delivered")
+
+	require.NoError(t, client.Close(context.Background()))
+	assert.Equal(t, saved+1, testutil.ToFloat64(metrics.AlertsSavedTotal.WithLabelValues("wal-replay", "firing")))
+
+	// The replayed record is now acknowledged: a fresh open recovers nothing.
+	reopened, err := openWAL(dir)
+	require.NoError(t, err)
+	assert.Empty(t, reopened.recover(), "delivered alert must not replay a second time")
+	require.NoError(t, reopened.close())
+}
+
 // TestClose_TimeoutReturnsError is the regression test for the Codex finding
 // that Close must honor its context and surface an incomplete drain. With a
 // slow Loki and an already-short deadline, Close must return an error rather

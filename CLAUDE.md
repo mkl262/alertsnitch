@@ -62,9 +62,10 @@ direction is one-way: `internal` (leaf: domain model + interfaces) ← `internal
   health / close via the embedded `base`; only the dialect-specific INSERTs differ (`?` vs `$N`,
   `LastInsertId` vs `RETURNING`). `SupportedModel` ("0.1.0") is checked in `CheckReadiness` (liveness only pings).
 - `internal/storage/loki/` — the Loki backend, split by concern: `config` (typed config + validation
-  + TLS), `encoding` (wire types + `FlattenAlertGroup`), `stream` (label allow-list + stream
-  construction), `transport` (gzip push + health ping), `batch` (async processor), `client` (the
-  `Client` type). See below.
+  + TLS), `encoding` (wire types + `FlattenAlertGroup`), `labels` (low-cardinality allow-list +
+  label-name validation), `stream` (stream construction), `timestamps` (per-stream de-collision),
+  `metadata` (structured-metadata field selection), `transport` (gzip push + health ping), `batch`
+  (async processor), `wal` (crash-durable write-ahead log), `client` (the `Client` type). See below.
 - `internal/storage/null/` — no-op backend for debugging the webhook path.
 - `internal/server/server.go` — gorilla/mux router (`/webhook`, `/-/ready`, `/-/health`, `/metrics`).
   `SupportedWebhookVersion` ("4") is enforced (else 400). The handler extracts query params
@@ -76,13 +77,30 @@ direction is one-way: `internal` (leaf: domain model + interfaces) ← `internal
 
 ### Loki backend specifics
 
-- **Stream labels**: only labels in an allow-list (`defaultAllowedLabels`, overridable via
-  `ALERTSNITCH_LOKI_ALLOWED_LABELS`) plus the query-param `extraLabels` become stream labels;
-  everything else stays in the JSON log line. One stream per `alert_status`.
-- **Timestamps** use the alert's real `StartsAt`/`EndsAt`, not `time.Now()`.
+- **Stream labels**: only labels in a **low-cardinality** allow-list (`defaultAllowedLabels` in
+  `labels.go`, overridable via `ALERTSNITCH_LOKI_ALLOWED_LABELS`) plus the query-param `extraLabels`
+  become stream labels; everything else stays in the JSON log line. High-cardinality labels (`pod`,
+  `instance`, `node`, `container`) are deliberately **not** default stream labels — promoting them
+  explodes Loki's active-stream count. Label *names* are validated (`isValidLabelName`) at the single
+  chokepoint `buildStreamLabels`, so a stray `?app-id=x` query param can't make Loki reject the whole
+  push. One stream per `alert_status`.
+- **Timestamps** use the alert's real `StartsAt`/`EndsAt`, not `time.Now()`. `ensureMonotonic`
+  (`timestamps.go`) sorts each stream's entries ascending and nudges colliding timestamps forward 1ns
+  so Loki doesn't silently drop alerts that share a `StartsAt`; applied on the sync path and after
+  `mergeStreams` (cross-group collisions).
+- **Structured metadata** (`ALERTSNITCH_LOKI_STRUCTURED_METADATA`, opt-in): attaches a curated set of
+  high-value fields (`fingerprint` + the high-card labels kept out of stream labels) as Loki 3.x
+  structured metadata (the optional 3rd tuple element in `row`), for fast filtering without stream
+  cardinality cost. Requires a Loki TSDB schema v13+.
 - **Batch mode** (`ALERTSNITCH_LOKI_BATCH_ENABLED`): `accumulate` drains the queue into batches and a
   separate `flusher` goroutine ships them with retries — so retry backoff never blocks accumulation.
   `Close(ctx)` drains buffered alerts within the deadline.
+- **WAL** (`ALERTSNITCH_LOKI_WAL_ENABLED` + `_DIR`, opt-in, requires batch mode): `wal.go` durably
+  appends each enqueued alert (length-prefixed JSON + fsync) before it enters the pipeline and acks it
+  only when its batch reaches a terminal outcome; a contiguous-ack checkpoint + compaction bound the
+  log. On startup, records past the checkpoint are replayed. Crash-durable, **at-least-once** (a crash
+  between push and checkpoint replays already-delivered alerts — tolerated because timestamp
+  de-collision + Loki dedup absorb duplicates).
 - **Persistence metrics**: the backend records `saved_total`/`saving_failures_total` at the *real*
   point of durability (synchronously, or at batch-flush resolution). Queue-full drops count as
   failures. The server does **not** double-count these — it owns only received/invalid + the gauge.

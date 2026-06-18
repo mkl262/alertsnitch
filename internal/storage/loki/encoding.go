@@ -20,33 +20,54 @@ type stream struct {
 	Values []row             `json:"values"`
 }
 
-// row is a single Loki log entry. It marshals to Loki's ["<unix-nanos>", "<line>"]
-// tuple form.
+// row is a single Loki log entry. It marshals to Loki's tuple form:
+// ["<unix-nanos>", "<line>"] or, when structured metadata is attached,
+// ["<unix-nanos>", "<line>", {"<key>": "<value>", ...}] (Loki 3.x).
 type row struct {
-	At  time.Time
-	Val string
+	At   time.Time
+	Val  string
+	Meta map[string]string // structured metadata; omitted from the wire when empty
 }
 
 func (r row) MarshalJSON() ([]byte, error) {
-	return json.Marshal([]string{strconv.FormatInt(r.At.UnixNano(), 10), r.Val})
+	ts := strconv.FormatInt(r.At.UnixNano(), 10)
+	if len(r.Meta) == 0 {
+		return json.Marshal([]string{ts, r.Val})
+	}
+	// A heterogeneous tuple (two strings then an object) cannot be a typed slice,
+	// so it is assembled as []any.
+	return json.Marshal([]any{ts, r.Val, r.Meta})
 }
 
 func (r *row) UnmarshalJSON(data []byte) error {
-	var arr []string
+	var arr []json.RawMessage
 	if err := json.Unmarshal(data, &arr); err != nil {
 		return err
 	}
-	if len(arr) != 2 {
-		return fmt.Errorf("expected array of length 2, got %d", len(arr))
+	if len(arr) != 2 && len(arr) != 3 {
+		return fmt.Errorf("expected array of length 2 or 3, got %d", len(arr))
 	}
 
-	timestamp, err := strconv.ParseInt(arr[0], 10, 64)
+	var tsStr, val string
+	if err := json.Unmarshal(arr[0], &tsStr); err != nil {
+		return fmt.Errorf("failed to decode timestamp: %w", err)
+	}
+	if err := json.Unmarshal(arr[1], &val); err != nil {
+		return fmt.Errorf("failed to decode line: %w", err)
+	}
+	timestamp, err := strconv.ParseInt(tsStr, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to parse timestamp: %w", err)
 	}
 
 	r.At = time.Unix(0, timestamp)
-	r.Val = arr[1]
+	r.Val = val
+	r.Meta = nil
+	if len(arr) == 3 {
+		if err := json.Unmarshal(arr[2], &r.Meta); err != nil {
+			return fmt.Errorf("failed to decode structured metadata: %w", err)
+		}
+	}
 	return nil
 }
 

@@ -193,7 +193,8 @@ route:
 - **ALERTSNITCH_MAX_CONN_LIFETIME** maximum number of seconds a connection is kept alive (default: 600)
 
 #### Loki Stream Labels
-- **ALERTSNITCH_LOKI_ALLOWED_LABELS** comma-separated list of alert labels to promote to Loki stream labels, e.g. `severity,priority,env` (default: a built-in set covering severity, namespace, pod, service, etc.)
+- **ALERTSNITCH_LOKI_ALLOWED_LABELS** comma-separated list of alert labels to promote to Loki stream labels, e.g. `severity,priority,env` (default: a built-in set of **low-cardinality** labels — `severity, priority, level, env, team, cluster, namespace, service, job`). High-cardinality labels such as `instance`, `pod`, `node` and `container` are intentionally excluded to keep Loki's active-stream count manageable; they remain in the JSON log line and can be surfaced via structured metadata (below). Set this only if you understand the cardinality of the labels you add.
+- **ALERTSNITCH_LOKI_STRUCTURED_METADATA** set to `true` to attach high-value per-alert fields (`fingerprint` plus high-cardinality labels like `pod`, `instance`, `namespace`, `node`, `container`, `job`) as Loki **structured metadata**, enabling fast filtering without inflating stream cardinality or parsing the JSON line (default: `false`). Requires a Loki 3.x TSDB schema (v13+) with structured metadata enabled — older Loki rejects the push.
 
 #### Loki Authentication Configuration
 - **ALERTSNITCH_LOKI_TENANT_ID** Loki tenant ID (optional)
@@ -224,6 +225,11 @@ export NO_PROXY=localhost,127.0.0.1,.local
 - **ALERTSNITCH_LOKI_BATCH_SIZE** Number of alerts to batch before sending (default: 100)
 - **ALERTSNITCH_LOKI_BATCH_FLUSH_TIMEOUT** Maximum time to wait before sending a partial batch (default: "5s")
 - **ALERTSNITCH_LOKI_BATCH_MAX_RETRIES** Maximum number of retry attempts for failed batches (default: 3)
+
+#### Loki Write-Ahead Log (crash durability)
+By default, batched alerts live only in memory, so a process crash (or a shutdown that misses its drain deadline) loses any not-yet-flushed alerts. Enabling the WAL durably appends every accepted alert to disk before it enters the pipeline and replays anything unacknowledged on the next start (at-least-once delivery).
+- **ALERTSNITCH_LOKI_WAL_ENABLED** Enable the disk-backed write-ahead log for crash-durable batch buffering; requires batch mode (default: "false")
+- **ALERTSNITCH_LOKI_WAL_DIR** Directory for the write-ahead log; required when the WAL is enabled (e.g. a mounted volume that survives restarts)
 
 
 ### Readiness probe
