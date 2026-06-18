@@ -49,3 +49,68 @@ Selector labels
 app.kubernetes.io/name: {{ include "alertsnitch.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Container spec — shared by the Deployment and StatefulSet workloads so the pod
+definition lives in exactly one place.
+*/}}
+{{- define "alertsnitch.container" -}}
+- name: {{ .Chart.Name }}
+  image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+  imagePullPolicy: {{ .Values.image.pullPolicy }}
+  ports:
+    - name: http
+      containerPort: 9567
+      protocol: TCP
+  livenessProbe:
+    httpGet:
+      path: /-/health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 15
+  readinessProbe:
+    httpGet:
+      path: /-/ready
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  env:
+    {{- range $key, $value := .Values.env }}
+    - name: {{ $key }}
+      value: {{ $value | quote }}
+    {{- end }}
+    {{- if .Values.secret.create }}
+    {{- range $key, $value := .Values.secret.data }}
+    - name: {{ $key }}
+      valueFrom:
+        secretKeyRef:
+          name: {{ include "alertsnitch.fullname" $ }}
+          key: {{ $key }}
+    {{- end }}
+    {{- end }}
+  resources:
+    {{- toYaml .Values.resources | nindent 4 }}
+  {{- if .Values.persistence.enabled }}
+  volumeMounts:
+    - name: wal
+      mountPath: {{ .Values.persistence.mountPath }}
+  {{- end }}
+{{- end }}
+
+{{/*
+Pod scheduling fields — shared by both workloads.
+*/}}
+{{- define "alertsnitch.podScheduling" -}}
+{{- with .Values.nodeSelector }}
+nodeSelector:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.affinity }}
+affinity:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.tolerations }}
+tolerations:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}

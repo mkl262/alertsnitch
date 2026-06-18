@@ -1,0 +1,18 @@
+{{- if eq .Values.controller.kind "StatefulSet" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "alertsnitch.fullname" . }}-headless
+  labels:
+    {{- include "alertsnitch.labels" . | nindent 4 }}
+spec:
+  # Headless service: gives each StatefulSet pod a stable DNS identity.
+  clusterIP: None
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "alertsnitch.selectorLabels" . | nindent 4 }}
+{{- end }}
