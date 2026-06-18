@@ -27,6 +27,12 @@ services:
       ALERTSNITCH_LOKI_BATCH_MAX_RETRIES: "${ALERTSNITCH_LOKI_BATCH_MAX_RETRIES:-3}"
       # Allowed labels configuration
       ALERTSNITCH_LOKI_ALLOWED_LABELS: "${ALERTSNITCH_LOKI_ALLOWED_LABELS:-}"
+      # Structured metadata (opt-in; requires Loki 3.x TSDB schema v13+)
+      ALERTSNITCH_LOKI_STRUCTURED_METADATA: "${ALERTSNITCH_LOKI_STRUCTURED_METADATA:-false}"
+      # Write-ahead log for crash-durable batch buffering (opt-in; requires batch mode).
+      # For real durability ALERTSNITCH_LOKI_WAL_DIR must point at a persistent volume.
+      ALERTSNITCH_LOKI_WAL_ENABLED: "${ALERTSNITCH_LOKI_WAL_ENABLED:-false}"
+      ALERTSNITCH_LOKI_WAL_DIR: "${ALERTSNITCH_LOKI_WAL_DIR:-}"
       # Proxy configuration (Prometheus style - uses standard environment variables)
       HTTP_PROXY: "${HTTP_PROXY:-}"
       HTTPS_PROXY: "${HTTPS_PROXY:-}"
