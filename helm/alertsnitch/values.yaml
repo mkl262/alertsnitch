@@ -1,0 +1,94 @@
+fullname: alertsnitch
+
+image:
+  repository: mikehsu0618/alertsnitch
+  pullPolicy: IfNotPresent
+  # tag: "" # Defaults to Chart.appVersion if not set
+
+service:
+  type: ClusterIP
+  port: 9567
+
+env:
+  ALERTSNITCH_ADDR: ":9567"
+  ALERTSNITCH_DEBUG: "false"
+  ALERTSNITCH_BACKEND: "loki"
+  ALERTSNITCH_BACKEND_ENDPOINT: "http://loki-gateway.loki"
+  ALERTSNITCH_LOKI_TENANT_ID: ""
+  ALERTSNITCH_LOKI_TLS_INSECURE_SKIP_VERIFY: "false"
+  ALERTSNITCH_LOKI_TLS_CA_CERT_PATH: ""
+  ALERTSNITCH_LOKI_TLS_CLIENT_CERT_PATH: ""
+  ALERTSNITCH_LOKI_TLS_CLIENT_KEY_PATH: ""
+
+  # --- Batch shipping (optional) ---
+  # ALERTSNITCH_LOKI_BATCH_ENABLED: "true"
+  # ALERTSNITCH_LOKI_BATCH_SIZE: "100"
+  # ALERTSNITCH_LOKI_BATCH_FLUSH_TIMEOUT: "5s"
+  # ALERTSNITCH_LOKI_BATCH_MAX_RETRIES: "3"
+
+  # --- Stream labels (optional) ---
+  # Override the low-cardinality default allow-list. Do NOT add high-cardinality
+  # labels (instance, pod, node, container) — they explode Loki's stream count.
+  # ALERTSNITCH_LOKI_ALLOWED_LABELS: "severity,priority,env"
+
+  # --- Structured metadata (optional) ---
+  # Promote fingerprint + high-cardinality labels to Loki structured metadata.
+  # Requires a Loki 3.x TSDB schema v13+.
+  # ALERTSNITCH_LOKI_STRUCTURED_METADATA: "true"
+
+  # --- Write-ahead log (optional, crash durability) ---
+  # Requires batch mode AND persistence.enabled=true (below) so WAL_DIR survives
+  # a restart. Without a persistent volume the WAL gives no real durability.
+  # ALERTSNITCH_LOKI_WAL_ENABLED: "true"
+  # ALERTSNITCH_LOKI_WAL_DIR: "/var/lib/alertsnitch/wal"
+
+# Optional persistent volume for the Loki WAL. Enable only with WAL + batch mode.
+# Because the WAL is per-pod (RWO) and replays at-least-once, keep replicaCount: 1
+# when this is enabled, or move to a StatefulSet for multiple replicas.
+persistence:
+  enabled: false
+  # existingClaim: ""        # use a pre-created PVC instead of provisioning one
+  mountPath: /var/lib/alertsnitch/wal
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+  # storageClassName: ""
+
+secret:
+  create: false
+  data:
+    ALERTSNITCH_LOKI_BASIC_AUTH_USER: ""
+    ALERTSNITCH_LOKI_BASIC_AUTH_PASSWORD: ""
+    # TLS sensitive data (if needed)
+    # ALERTSNITCH_LOKI_TLS_CA_CERT_PATH: "/path/to/ca-cert.pem"
+    # ALERTSNITCH_LOKI_TLS_CLIENT_CERT_PATH: "/path/to/client-cert.pem"
+    # ALERTSNITCH_LOKI_TLS_CLIENT_KEY_PATH: "/path/to/client-key.pem"
+
+replicaCount: 1
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  # - host: alertsnitch.local
+  #   paths:
+  #     - path: /
+  #       pathType: Prefix
+  tls: []
+  #  - secretName: alertsnitch-tls
+  #    hosts:
+  #      - alertsnitch.local

@@ -1,5 +1,7 @@
 # Binaries
-alertsnitch
+# Anchored to the repo root so it ignores the built ./alertsnitch binary but NOT
+# the helm/alertsnitch/ chart directory (a bare "alertsnitch" matched both).
+/alertsnitch
 alertsnitch-*
 *.exe
 *.exe~
