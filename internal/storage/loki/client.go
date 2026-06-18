@@ -54,7 +54,20 @@ func New(cfg Config) (*Client, error) {
 
 	if cfg.Batch.Enabled {
 		c.batch = newBatchProcessor(c, cfg.Batch)
+
+		var recovered []walRecord
+		if cfg.WAL.Enabled {
+			w, err := openWAL(cfg.WAL.Dir)
+			if err != nil {
+				return nil, fmt.Errorf("failed to open Loki WAL: %w", err)
+			}
+			c.batch.wal = w
+			recovered = w.recover()
+			logrus.Infof("Loki WAL enabled at %s: %d buffered alert(s) recovered for replay", cfg.WAL.Dir, len(recovered))
+		}
+
 		c.batch.start()
+		c.batch.replay(recovered)
 		logrus.Infof("Loki batch processing enabled: size=%d, timeout=%v", cfg.Batch.Size, cfg.Batch.FlushTimeout)
 	}
 

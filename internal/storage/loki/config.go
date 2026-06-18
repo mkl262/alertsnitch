@@ -32,11 +32,19 @@ type Config struct {
 	Auth           AuthConfig
 	TLS            TLSConfig
 	Batch          BatchConfig
+	WAL            WALConfig
 	RequestTimeout time.Duration
 
 	// AllowedLabels lists which alert labels are promoted to Loki stream
 	// labels. When empty, a built-in default set is used (see labels.go).
 	AllowedLabels []string
+
+	// StructuredMetadata, when true, attaches a curated set of high-value
+	// per-alert fields (fingerprint and high-cardinality labels like pod and
+	// instance) as Loki structured metadata. It is opt-in because it requires a
+	// Loki 3.x TSDB schema (v13+) with structured metadata enabled; older Loki
+	// rejects the push. See metadata.go for the promoted fields.
+	StructuredMetadata bool
 }
 
 // AuthConfig holds Loki multi-tenancy and basic-auth settings.
@@ -61,6 +69,13 @@ type BatchConfig struct {
 	FlushTimeout time.Duration
 	MaxRetries   int
 	RetryDelay   time.Duration
+}
+
+// WALConfig controls the optional disk-backed write-ahead log that gives batch
+// mode crash durability.
+type WALConfig struct {
+	Enabled bool
+	Dir     string
 }
 
 // DefaultBatchConfig returns the batch defaults (disabled by default).
@@ -98,6 +113,22 @@ func (c *Config) Validate() error {
 	}
 	if err := c.TLS.validate(); err != nil {
 		return fmt.Errorf("tls config: %w", err)
+	}
+	if err := c.WAL.validate(c.Batch.Enabled); err != nil {
+		return fmt.Errorf("wal config: %w", err)
+	}
+	return nil
+}
+
+func (w WALConfig) validate(batchEnabled bool) error {
+	if !w.Enabled {
+		return nil
+	}
+	if !batchEnabled {
+		return errors.New("WAL requires batch mode to be enabled")
+	}
+	if w.Dir == "" {
+		return errors.New("WAL directory is required when the WAL is enabled")
 	}
 	return nil
 }

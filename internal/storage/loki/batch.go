@@ -12,10 +12,12 @@ import (
 )
 
 // queuedAlert is one alert group awaiting batched delivery, together with the
-// per-request labels captured when it was enqueued.
+// per-request labels captured when it was enqueued. seq is its WAL sequence
+// number (0 when the WAL is disabled), used to acknowledge it once delivered.
 type queuedAlert struct {
 	group       *internal.AlertGroup
 	extraLabels map[string]string
+	seq         uint64
 }
 
 // convertedGroup pairs a queued alert with its successfully built streams so
@@ -35,6 +37,11 @@ type convertedGroup struct {
 type batchProcessor struct {
 	client *Client
 	cfg    BatchConfig
+
+	// wal, when non-nil, durably logs each enqueued alert so a crash before
+	// flush does not lose it. Records are acknowledged once their batch reaches
+	// a terminal outcome.
+	wal *wal
 
 	in       chan queuedAlert
 	flushCh  chan []queuedAlert
@@ -73,8 +80,26 @@ func (b *batchProcessor) start() {
 
 // enqueue offers an alert to the queue, applying brief backpressure before
 // giving up. A dropped alert is recorded as a saving failure so the loss is
-// observable in metrics rather than silent.
+// observable in metrics rather than silent. When the WAL is enabled the alert
+// is durably logged before it enters the pipeline; a queue-full drop is a
+// terminal outcome, so its WAL record is acknowledged rather than replayed.
+//
+// If ctx is canceled while waiting for queue space, the WAL record is left
+// unacknowledged on purpose: the alert was durably accepted, so it is replayed
+// on the next start (at-least-once). The only cost is that the record is
+// retained until then; under sustained client cancellations that retains WAL
+// space, but AlertManager (the expected client) does not cancel mid-request.
 func (b *batchProcessor) enqueue(ctx context.Context, qa queuedAlert) error {
+	if b.wal != nil {
+		seq, err := b.wal.append(qa.group, qa.extraLabels)
+		if err != nil {
+			logrus.Errorf("Failed to write alert to Loki WAL: %v", err)
+			recordOutcome(qa.group.Receiver, qa.group.Status, len(qa.group.Alerts), err)
+			return fmt.Errorf("loki wal append: %w", err)
+		}
+		qa.seq = seq
+	}
+
 	select {
 	case b.in <- qa:
 		return nil
@@ -91,7 +116,46 @@ func (b *batchProcessor) enqueue(ctx context.Context, qa queuedAlert) error {
 	default:
 		logrus.Warn("Loki alert queue is full, dropping alert")
 		recordOutcome(qa.group.Receiver, qa.group.Status, len(qa.group.Alerts), errQueueFull)
+		b.ackBatch([]queuedAlert{qa})
 		return errQueueFull
+	}
+}
+
+// replay re-injects records recovered from the WAL into the pipeline. It runs in
+// the background and is tracked by the wait group so a shutdown waits for the
+// replay to finish rather than abandoning recovered alerts.
+func (b *batchProcessor) replay(records []walRecord) {
+	if len(records) == 0 {
+		return
+	}
+	b.wg.Add(1)
+	go func() {
+		defer b.wg.Done()
+		for _, rec := range records {
+			select {
+			case b.in <- queuedAlert{group: rec.Group, extraLabels: rec.ExtraLabels, seq: rec.Seq}:
+			case <-b.stopCh:
+				return
+			}
+		}
+	}()
+}
+
+// ackBatch acknowledges the WAL records for an entire batch once every group in
+// it has reached a terminal outcome (delivered or permanently failed), so none
+// of them are replayed on the next start.
+func (b *batchProcessor) ackBatch(batch []queuedAlert) {
+	if b.wal == nil {
+		return
+	}
+	seqs := make([]uint64, 0, len(batch))
+	for _, qa := range batch {
+		if qa.seq != 0 {
+			seqs = append(seqs, qa.seq)
+		}
+	}
+	if err := b.wal.ack(seqs); err != nil {
+		logrus.Errorf("Failed to acknowledge Loki WAL records: %v", err)
 	}
 }
 
@@ -148,6 +212,11 @@ func (b *batchProcessor) flush(batch []queuedAlert) {
 	if len(batch) == 0 {
 		return
 	}
+
+	// Every group in this batch reaches a terminal outcome here (delivered,
+	// conversion-failed, or delivery-failed), so the whole batch is acknowledged
+	// to the WAL on the way out regardless of which path each group took.
+	defer b.ackBatch(batch)
 
 	// Convert each group independently. A group that fails stream conversion is
 	// its own failure — it must not be silently skipped, nor borrow another
@@ -225,6 +294,10 @@ func mergeStreams(groups []convertedGroup) []stream {
 
 	result := make([]stream, 0, len(streamMap))
 	for _, s := range streamMap {
+		// Merging entries from several groups into one stream can reintroduce
+		// timestamp collisions and out-of-order entries even though each group
+		// was individually monotonic; re-normalize the combined stream.
+		s.Values = ensureMonotonic(s.Values)
 		result = append(result, *s)
 	}
 	return result
@@ -246,13 +319,27 @@ func (b *batchProcessor) stop(ctx context.Context) error {
 	select {
 	case <-done:
 		b.runCancel()
+		b.closeWAL()
 		return nil
 	case <-ctx.Done():
 		// Abort in-flight pushes/retries so delivery does not continue past the
 		// deadline on a background context.
 		b.runCancel()
+		b.closeWAL()
 		err := fmt.Errorf("loki batch shutdown did not complete within the deadline: %w", ctx.Err())
 		logrus.Warnf("%v; some buffered alerts may be lost", err)
 		return err
+	}
+}
+
+// closeWAL releases the WAL file handle, if a WAL is in use. Records left
+// unacknowledged (e.g. an incomplete drain) stay on disk for the next start to
+// replay — that is the durability guarantee.
+func (b *batchProcessor) closeWAL() {
+	if b.wal == nil {
+		return
+	}
+	if err := b.wal.close(); err != nil {
+		logrus.Errorf("Failed to close Loki WAL: %v", err)
 	}
 }
