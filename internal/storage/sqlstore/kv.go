@@ -2,14 +2,14 @@ package sqlstore
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/md5" //nolint:gosec // KvHash dedup digest; must match database/*/0.2.0-labelkv.sql
 	"database/sql"
 	"encoding/hex"
 )
 
 // kvPairHash is a fixed-width digest of key || ASCII SOH || value for unique indexes (MySQL index size limit; PG rejects NUL in text).
 func kvPairHash(k, v string) string {
-	sum := md5.Sum([]byte(k + "\x01" + v))
+	sum := md5.Sum([]byte(k + "\x01" + v)) //nolint:gosec // not for security; fixed-width unique-index key
 	return hex.EncodeToString(sum[:])
 }
 
