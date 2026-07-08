@@ -35,9 +35,10 @@ go test ./internal/storage/loki -run TestName/subtest_name -v   # specific subte
 
 The SQL backends (`internal/storage/sqlstore/{mysql,postgres}.go`) only have meaningful coverage when a real
 database is reachable. CI spins up MySQL 8.0 and Postgres 15 service containers, bootstraps them
-with both SQL files, and sets `ALERTSNITCH_BACKEND` + `ALERTSNITCH_BACKEND_ENDPOINT` (see
-`.github/workflows/ci.yml`). To replicate locally, run a DB, apply both files in
-`database/<engine>/` in order (`0.0.1-bootstrap.sql` then `0.1.0-fingerprint.sql`), then
+with all four SQL files, and sets `ALERTSNITCH_BACKEND` + `ALERTSNITCH_BACKEND_ENDPOINT` (see
+`.github/workflows/ci.yml`). To replicate locally, run a DB, apply the files in
+`database/<engine>/` in order (`0.0.1-bootstrap.sql`, `0.1.0-fingerprint.sql`, `0.2.0-labelkv.sql`,
+`0.3.0-alertgroup-kv.sql`), then
 `make integration` (or `go test -tags integration ./internal/storage/`) with those env vars set.
 
 ## Architecture
@@ -60,7 +61,11 @@ direction is one-way: `internal` (leaf: domain model + interfaces) ← `internal
   matching `Backend` is consulted (no stringly-typed `map[string]string`).
 - `internal/storage/sqlstore/` — MySQL + Postgres. They share connect / transaction / model-check /
   health / close via the embedded `base`; only the dialect-specific INSERTs differ (`?` vs `$N`,
-  `LastInsertId` vs `RETURNING`). `SupportedModel` ("0.1.0") is checked in `CheckReadiness` (liveness only pings).
+  `LastInsertId` vs `RETURNING`). `SupportedModel` ("0.3.0") is checked in `CheckReadiness` (liveness only pings).
+  Labels/annotations and the AlertGroup `receiver`/`externalURL`/`groupKey` are **deduplicated** into
+  lookup tables (`LabelKV`/`AnnotationKV` keyed by an MD5 `KvHash`, plus `AlertGroup*` tables); `kv.go`
+  holds the per-dialect `getOrCreate` helpers (MySQL `INSERT IGNORE` + `SELECT`, Postgres
+  `INSERT … ON CONFLICT DO UPDATE … RETURNING`) and the child rows store only the FK id.
 - `internal/storage/loki/` — the Loki backend, split by concern: `config` (typed config + validation
   + TLS), `encoding` (wire types + `FlattenAlertGroup`), `labels` (low-cardinality allow-list +
   label-name validation), `stream` (stream construction), `timestamps` (per-stream de-collision),
