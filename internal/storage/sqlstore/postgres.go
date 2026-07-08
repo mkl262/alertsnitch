@@ -30,26 +30,39 @@ func ConnectPostgres(cfg Config) (*Postgres, error) {
 // Save persists an alert group. extraLabels is ignored by SQL backends.
 func (d *Postgres) Save(ctx context.Context, data *internal.AlertGroup, _ map[string]string) error {
 	err := d.unitOfWork(ctx, func(tx *sql.Tx) error {
+		receiverID, err := postgresGetReceiverID(ctx, tx, data.Receiver)
+		if err != nil {
+			return fmt.Errorf("failed to resolve AlertGroup AlertGroupReceiver: %w", err)
+		}
+		externalURLID, err := postgresGetExternalURLID(ctx, tx, data.ExternalURL)
+		if err != nil {
+			return fmt.Errorf("failed to resolve AlertGroup AlertGroupExternalURL: %w", err)
+		}
+		groupKeyID, err := postgresGetKeyID(ctx, tx, data.GroupKey)
+		if err != nil {
+			return fmt.Errorf("failed to resolve AlertGroup AlertGroupKey: %w", err)
+		}
+
 		var alertGroupID int64
-		err := tx.QueryRowContext(ctx, `
-			INSERT INTO AlertGroup (time, receiver, status, externalURL, groupKey)
+		err = tx.QueryRowContext(ctx, `
+			INSERT INTO AlertGroup (time, status, ReceiverID, ExternalURLID, KeyID)
 			VALUES (current_timestamp, $1, $2, $3, $4) RETURNING ID`,
-			data.Receiver, data.Status, data.ExternalURL, data.GroupKey).Scan(&alertGroupID)
+			data.Status, receiverID, externalURLID, groupKeyID).Scan(&alertGroupID)
 		if err != nil {
 			return fmt.Errorf("failed to insert into AlertGroups: %w", err)
 		}
 
-		if err := insertKVPG(ctx, tx, "GroupLabel (alertGroupID, GroupLabel, Value)", alertGroupID, data.GroupLabels); err != nil {
+		if err := insertGroupLabelsPostgres(ctx, tx, alertGroupID, data.GroupLabels); err != nil {
 			return err
 		}
-		if err := insertKVPG(ctx, tx, "CommonLabel (alertGroupID, Label, Value)", alertGroupID, data.CommonLabels); err != nil {
+		if err := insertCommonLabelsPostgres(ctx, tx, alertGroupID, data.CommonLabels); err != nil {
 			return err
 		}
-		if err := insertKVPG(ctx, tx, "CommonAnnotation (alertGroupID, Annotation, Value)", alertGroupID, data.CommonAnnotations); err != nil {
+		if err := insertCommonAnnotationsPostgres(ctx, tx, alertGroupID, data.CommonAnnotations); err != nil {
 			return err
 		}
 
-		return insertAlertsPG(ctx, tx, alertGroupID, data.Alerts)
+		return insertAlertsPostgres(ctx, tx, alertGroupID, data.Alerts)
 	})
 	metrics.RecordSaveOutcome(data.Receiver, data.Status, len(data.Alerts), err)
 	return err
@@ -57,7 +70,7 @@ func (d *Postgres) Save(ctx context.Context, data *internal.AlertGroup, _ map[st
 
 func (*Postgres) String() string { return "postgres database driver" }
 
-func insertAlertsPG(ctx context.Context, tx *sql.Tx, alertGroupID int64, alerts []internal.Alert) error {
+func insertAlertsPostgres(ctx context.Context, tx *sql.Tx, alertGroupID int64, alerts []internal.Alert) error {
 	for _, alert := range alerts {
 		var row *sql.Row
 		if alert.EndsAt.Before(alert.StartsAt) {
@@ -76,24 +89,86 @@ func insertAlertsPG(ctx context.Context, tx *sql.Tx, alertGroupID int64, alerts 
 			return fmt.Errorf("failed to insert into Alert: %w", err)
 		}
 
-		if err := insertKVPG(ctx, tx, "AlertLabel (AlertID, Label, Value)", alertID, alert.Labels); err != nil {
+		if err := insertAlertLabelsPostgres(ctx, tx, alertID, alert.Labels); err != nil {
 			return err
 		}
-		if err := insertKVPG(ctx, tx, "AlertAnnotation (AlertID, Annotation, Value)", alertID, alert.Annotations); err != nil {
+		if err := insertAlertAnnotationsPostgres(ctx, tx, alertID, alert.Annotations); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// insertKVPG inserts a map of key/value rows into a (id, key, value) table
-// using Postgres placeholder syntax. table is a compile-time constant supplied
-// by this package, never user input.
-func insertKVPG(ctx context.Context, tx *sql.Tx, table string, id int64, kv map[string]string) error {
+func insertGroupLabelsPostgres(ctx context.Context, tx *sql.Tx, alertGroupID int64, kv map[string]string) error {
 	for k, v := range kv {
-		//nolint:gosec // table is a package-internal constant, not user input
-		if _, err := tx.ExecContext(ctx, "INSERT INTO "+table+" VALUES ($1, $2, $3)", id, k, v); err != nil {
-			return fmt.Errorf("failed to insert into %s: %w", table, err)
+		kvID, err := postgresGetLabelKVID(ctx, tx, k, v)
+		if err != nil {
+			return fmt.Errorf("failed to resolve GroupLabel LabelKV: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO GroupLabel (alertGroupID, LabelKVID)
+			VALUES ($1, $2)`, alertGroupID, kvID); err != nil {
+			return fmt.Errorf("failed to insert into GroupLabel: %w", err)
+		}
+	}
+	return nil
+}
+
+func insertCommonLabelsPostgres(ctx context.Context, tx *sql.Tx, alertGroupID int64, kv map[string]string) error {
+	for k, v := range kv {
+		kvID, err := postgresGetLabelKVID(ctx, tx, k, v)
+		if err != nil {
+			return fmt.Errorf("failed to resolve CommonLabel LabelKV: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO CommonLabel (alertGroupID, LabelKVID)
+			VALUES ($1, $2)`, alertGroupID, kvID); err != nil {
+			return fmt.Errorf("failed to insert into CommonLabel: %w", err)
+		}
+	}
+	return nil
+}
+
+func insertCommonAnnotationsPostgres(ctx context.Context, tx *sql.Tx, alertGroupID int64, kv map[string]string) error {
+	for k, v := range kv {
+		kvID, err := postgresGetAnnotationKVID(ctx, tx, k, v)
+		if err != nil {
+			return fmt.Errorf("failed to resolve CommonAnnotation AnnotationKV: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO CommonAnnotation (alertGroupID, AnnotationKVID)
+			VALUES ($1, $2)`, alertGroupID, kvID); err != nil {
+			return fmt.Errorf("failed to insert into CommonAnnotation: %w", err)
+		}
+	}
+	return nil
+}
+
+func insertAlertLabelsPostgres(ctx context.Context, tx *sql.Tx, alertID int64, kv map[string]string) error {
+	for k, v := range kv {
+		kvID, err := postgresGetLabelKVID(ctx, tx, k, v)
+		if err != nil {
+			return fmt.Errorf("failed to resolve AlertLabel LabelKV: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO AlertLabel (AlertID, LabelKVID)
+			VALUES ($1, $2)`, alertID, kvID); err != nil {
+			return fmt.Errorf("failed to insert into AlertLabel: %w", err)
+		}
+	}
+	return nil
+}
+
+func insertAlertAnnotationsPostgres(ctx context.Context, tx *sql.Tx, alertID int64, kv map[string]string) error {
+	for k, v := range kv {
+		kvID, err := postgresGetAnnotationKVID(ctx, tx, k, v)
+		if err != nil {
+			return fmt.Errorf("failed to resolve AlertAnnotation AnnotationKV: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO AlertAnnotation (AlertID, AnnotationKVID)
+			VALUES ($1, $2)`, alertID, kvID); err != nil {
+			return fmt.Errorf("failed to insert into AlertAnnotation: %w", err)
 		}
 	}
 	return nil
