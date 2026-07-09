@@ -171,14 +171,14 @@ func TestDataToStream_StructuredMetadataToggle(t *testing.T) {
 	}
 
 	t.Run("disabled by default", func(t *testing.T) {
-		streams, err := (&Client{allowedLabels: allowedLabelSet(nil)}).dataToStream(ag, nil)
+		streams, err := (&Client{allowedLabels: allowedLabelSet(nil)}).dataToStream(ag, nil, time.Now())
 		require.NoError(t, err)
 		assert.Nil(t, streams[0].Values[0].Meta, "metadata must be absent when disabled")
 	})
 
 	t.Run("enabled attaches metadata", func(t *testing.T) {
 		c := &Client{allowedLabels: allowedLabelSet(nil), cfg: Config{StructuredMetadata: true}}
-		streams, err := c.dataToStream(ag, nil)
+		streams, err := c.dataToStream(ag, nil, time.Now())
 		require.NoError(t, err)
 		assert.Equal(t, "p1", streams[0].Values[0].Meta["pod"])
 		assert.Equal(t, "fp", streams[0].Values[0].Meta["fingerprint"])
@@ -189,9 +189,10 @@ func testClient(allowed ...string) *Client {
 	return &Client{allowedLabels: allowedLabelSet(allowed)}
 }
 
-func TestDataToStream_GroupsByStatusAndUsesAlertTimestamps(t *testing.T) {
+func TestDataToStream_GroupsByStatusAndUsesReceiveTime(t *testing.T) {
 	start := time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC)
 	end := start.Add(time.Hour)
+	received := time.Date(2025, 6, 1, 12, 0, 0, 0, time.UTC)
 
 	ag := &internal.AlertGroup{
 		Version:      "4",
@@ -204,7 +205,7 @@ func TestDataToStream_GroupsByStatusAndUsesAlertTimestamps(t *testing.T) {
 		},
 	}
 
-	streams, err := testClient().dataToStream(ag, nil)
+	streams, err := testClient().dataToStream(ag, nil, received)
 	require.NoError(t, err)
 	require.Len(t, streams, 2, "one stream per status")
 
@@ -215,12 +216,63 @@ func TestDataToStream_GroupsByStatusAndUsesAlertTimestamps(t *testing.T) {
 
 	require.Contains(t, byStatus, "firing")
 	require.Contains(t, byStatus, "resolved")
-	assert.Equal(t, start.UnixNano(), byStatus["firing"].Values[0].At.UnixNano(), "firing uses StartsAt")
-	assert.Equal(t, end.UnixNano(), byStatus["resolved"].Values[0].At.UnixNano(), "resolved uses EndsAt")
+	assert.Equal(t, received.UnixNano(), byStatus["firing"].Values[0].At.UnixNano(), "firing entry is stamped at receive time")
+	assert.Equal(t, received.UnixNano(), byStatus["resolved"].Values[0].At.UnixNano(), "resolved entry is stamped at receive time")
+}
+
+// TestDataToStream_OldAlertUsesReceiveTime is the regression test for the 1.1.0
+// rollout failure: an alert that has been firing for months must not be pushed
+// at its StartsAt, or Loki rejects it (reject_old_samples / entry too far
+// behind) and the alert history is silently lost. The alert's own StartsAt and
+// EndsAt stay in the JSON log line, so nothing is lost by stamping receive time.
+func TestDataToStream_OldAlertUsesReceiveTime(t *testing.T) {
+	start := time.Date(2026, 1, 15, 9, 0, 0, 0, time.UTC) // ~6 months before receipt
+	received := time.Date(2026, 7, 9, 4, 32, 9, 0, time.UTC)
+
+	ag := &internal.AlertGroup{
+		Version:      "4",
+		Receiver:     "r",
+		Status:       "firing",
+		CommonLabels: map[string]string{"alertname": "X"},
+		Alerts: internal.Alerts{
+			{Status: "firing", StartsAt: start},
+		},
+	}
+
+	streams, err := testClient().dataToStream(ag, nil, received)
+	require.NoError(t, err)
+	require.Len(t, streams, 1)
+	require.Len(t, streams[0].Values, 1)
+
+	entry := streams[0].Values[0]
+	assert.Equal(t, received.UnixNano(), entry.At.UnixNano(), "entry timestamp must be the receive time, not StartsAt")
+
+	var line FlattenAlertGroup
+	require.NoError(t, json.Unmarshal([]byte(entry.Val), &line))
+	assert.True(t, line.Alert.StartsAt.Equal(start), "the alert's real StartsAt must still be queryable in the log line")
+}
+
+// TestDataToStream_ZeroReceivedAtFallsBackToNow covers WAL records written by an
+// older version, which carry no receivedAt.
+func TestDataToStream_ZeroReceivedAtFallsBackToNow(t *testing.T) {
+	ag := &internal.AlertGroup{
+		Version:      "4",
+		Receiver:     "r",
+		Status:       "firing",
+		CommonLabels: map[string]string{"alertname": "X"},
+		Alerts:       internal.Alerts{{Status: "firing"}},
+	}
+
+	before := time.Now()
+	streams, err := testClient().dataToStream(ag, nil, time.Time{})
+	require.NoError(t, err)
+	at := streams[0].Values[0].At
+	assert.False(t, at.Before(before), "a zero receivedAt must fall back to now")
+	assert.False(t, at.After(time.Now()), "a zero receivedAt must fall back to now")
 }
 
 func TestDataToStream_EmptyAlertsIsError(t *testing.T) {
-	_, err := testClient().dataToStream(&internal.AlertGroup{}, nil)
+	_, err := testClient().dataToStream(&internal.AlertGroup{}, nil, time.Now())
 	assert.Error(t, err)
 }
 
@@ -260,8 +312,8 @@ func TestEnsureMonotonic(t *testing.T) {
 }
 
 // TestDataToStream_CollidingTimestampsArePreserved is the regression test for
-// the silent-drop bug: several alerts with the same StartsAt in one status must
-// each land at a unique timestamp so Loki keeps them all.
+// the silent-drop bug: every alert in a group is stamped at the same receive
+// time, so each must be nudged to a unique timestamp for Loki to keep them all.
 func TestDataToStream_CollidingTimestampsArePreserved(t *testing.T) {
 	start := time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC)
 	ag := &internal.AlertGroup{
@@ -276,7 +328,7 @@ func TestDataToStream_CollidingTimestampsArePreserved(t *testing.T) {
 		},
 	}
 
-	streams, err := testClient().dataToStream(ag, nil)
+	streams, err := testClient().dataToStream(ag, nil, time.Now())
 	require.NoError(t, err)
 	require.Len(t, streams, 1)
 

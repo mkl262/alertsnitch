@@ -88,15 +88,23 @@ func New(cfg Config) (*Client, error) {
 // Save persists an alert group. In batch mode it enqueues the group and the
 // background processor ships and accounts for it; otherwise it ships
 // synchronously and records the outcome immediately.
+//
+// The receive time is stamped once, here, and carried through the batch queue
+// and the WAL. Stamping it later (at flush) would give a WAL record a fresh
+// timestamp on replay, so Loki could no longer drop the byte-identical repeat —
+// the at-least-once guarantee relies on a replayed entry being reproducible.
 func (c *Client) Save(ctx context.Context, data *internal.AlertGroup, extraLabels map[string]string) error {
+	receivedAt := time.Now()
+
 	if c.batch != nil {
 		return c.batch.enqueue(ctx, queuedAlert{
 			group:       data,
 			extraLabels: extraLabels,
+			receivedAt:  receivedAt,
 		})
 	}
 
-	streams, err := c.dataToStream(data, extraLabels)
+	streams, err := c.dataToStream(data, extraLabels, receivedAt)
 	if err != nil {
 		recordOutcome(data.Receiver, data.Status, len(data.Alerts), err)
 		return fmt.Errorf("error converting data to stream: %w", err)

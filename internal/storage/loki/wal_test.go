@@ -1,9 +1,11 @@
 package loki
 
 import (
+	"encoding/binary"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,9 +29,9 @@ func TestWAL_AppendRecoverAck(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, w.recover(), "fresh WAL has nothing to recover")
 
-	s1, err := w.append(walGroup("a"), map[string]string{"src": "am"})
+	s1, err := w.append(walGroup("a"), map[string]string{"src": "am"}, time.Now())
 	require.NoError(t, err)
-	s2, err := w.append(walGroup("b"), nil)
+	s2, err := w.append(walGroup("b"), nil, time.Now())
 	require.NoError(t, err)
 	assert.Equal(t, uint64(1), s1)
 	assert.Equal(t, uint64(2), s2)
@@ -60,7 +62,7 @@ func TestWAL_ContiguousCheckpointOnly(t *testing.T) {
 	w, err := openWAL(dir)
 	require.NoError(t, err)
 	for i := 0; i < 3; i++ {
-		_, err := w.append(walGroup("r"), nil)
+		_, err := w.append(walGroup("r"), nil, time.Now())
 		require.NoError(t, err)
 	}
 
@@ -84,7 +86,7 @@ func TestWAL_TruncatedTailIsIgnored(t *testing.T) {
 	dir := t.TempDir()
 	w, err := openWAL(dir)
 	require.NoError(t, err)
-	_, err = w.append(walGroup("ok"), nil)
+	_, err = w.append(walGroup("ok"), nil, time.Now())
 	require.NoError(t, err)
 	require.NoError(t, w.close())
 
@@ -112,7 +114,7 @@ func TestWAL_RecordTooLargeIsRejected(t *testing.T) {
 	huge := walGroup("big")
 	huge.CommonAnnotations = map[string]string{"description": string(make([]byte, walMaxRecordLen+1))}
 
-	_, err = w.append(huge, nil)
+	_, err = w.append(huge, nil, time.Now())
 	require.Error(t, err, "an oversized record must be rejected, not silently corrupt the log")
 	assert.Equal(t, uint64(0), w.seq, "a rejected append must not consume a sequence number")
 }
@@ -158,12 +160,12 @@ func TestWAL_OperationsAfterCloseAreSafe(t *testing.T) {
 	dir := t.TempDir()
 	w, err := openWAL(dir)
 	require.NoError(t, err)
-	s1, err := w.append(walGroup("r"), nil)
+	s1, err := w.append(walGroup("r"), nil, time.Now())
 	require.NoError(t, err)
 	require.NoError(t, w.close())
 
 	assert.NotPanics(t, func() {
-		_, appendErr := w.append(walGroup("r"), nil)
+		_, appendErr := w.append(walGroup("r"), nil, time.Now())
 		assert.ErrorIs(t, appendErr, errWALClosed, "append after close must report closed, not panic")
 		// ack after close must not panic even if it would otherwise compact.
 		_ = w.ack([]uint64{s1})
@@ -183,7 +185,7 @@ func TestWAL_Compaction(t *testing.T) {
 
 	var seqs []uint64
 	for i := 0; i < n; i++ {
-		s, err := w.append(big, nil)
+		s, err := w.append(big, nil, time.Now())
 		require.NoError(t, err)
 		seqs = append(seqs, s)
 	}
@@ -202,4 +204,64 @@ func TestWAL_Compaction(t *testing.T) {
 	require.Len(t, recovered, 1, "only the unacknowledged record survives compaction")
 	assert.Equal(t, uint64(n), recovered[0].Seq)
 	require.NoError(t, w2.close())
+}
+
+// TestWAL_ReceivedAtSurvivesReplay pins the property the at-least-once guarantee
+// rests on: a replayed record must produce the same Loki entry timestamp it had
+// on its first push, so Loki drops the byte-identical repeat instead of storing
+// the alert twice.
+func TestWAL_ReceivedAtSurvivesReplay(t *testing.T) {
+	dir := t.TempDir()
+	received := time.Date(2026, 7, 9, 4, 32, 9, 123456789, time.UTC)
+
+	w, err := openWAL(dir)
+	require.NoError(t, err)
+	_, err = w.append(walGroup("a"), nil, received)
+	require.NoError(t, err)
+	require.NoError(t, w.close())
+
+	w2, err := openWAL(dir)
+	require.NoError(t, err)
+	defer w2.close()
+
+	recovered := w2.recover()
+	require.Len(t, recovered, 1)
+	require.True(t, recovered[0].ReceivedAt.Equal(received), "receivedAt must round-trip through the WAL")
+
+	c := testClient()
+	first, err := c.dataToStream(walGroup("a"), nil, received)
+	require.NoError(t, err)
+	replayed, err := c.dataToStream(recovered[0].Group, recovered[0].ExtraLabels, recovered[0].ReceivedAt)
+	require.NoError(t, err)
+	assert.Equal(t, first[0].Values[0].At.UnixNano(), replayed[0].Values[0].At.UnixNano(),
+		"a replayed record must reproduce the original entry timestamp")
+	assert.Equal(t, first[0].Values[0].Val, replayed[0].Values[0].Val)
+}
+
+// TestWAL_LegacyRecordWithoutReceivedAt covers records written by a version that
+// did not persist receivedAt: they must still replay, stamped at push time.
+func TestWAL_LegacyRecordWithoutReceivedAt(t *testing.T) {
+	dir := t.TempDir()
+	f, err := os.OpenFile(filepath.Join(dir, walLogName), os.O_CREATE|os.O_WRONLY, 0o640)
+	require.NoError(t, err)
+	legacy := []byte(`{"seq":1,"group":{"receiver":"old","status":"firing","alerts":[{"status":"firing"}]}}`)
+	var lenBuf [4]byte
+	binary.BigEndian.PutUint32(lenBuf[:], uint32(len(legacy)))
+	_, err = f.Write(append(lenBuf[:], legacy...))
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	w, err := openWAL(dir)
+	require.NoError(t, err)
+	defer w.close()
+
+	recovered := w.recover()
+	require.Len(t, recovered, 1)
+	require.True(t, recovered[0].ReceivedAt.IsZero())
+
+	before := time.Now()
+	streams, err := testClient().dataToStream(recovered[0].Group, nil, recovered[0].ReceivedAt)
+	require.NoError(t, err)
+	at := streams[0].Values[0].At
+	assert.False(t, at.Before(before), "a legacy record is stamped at replay time")
 }
