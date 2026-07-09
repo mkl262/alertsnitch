@@ -30,9 +30,15 @@ func groupAlertsByStatus(alerts []internal.Alert) map[string][]internal.Alert {
 }
 
 // dataToStream converts an alert group into one Loki stream per alert status.
-func (c *Client) dataToStream(data *internal.AlertGroup, extraLabels map[string]string) ([]stream, error) {
+// Every entry is stamped with receivedAt, the moment the webhook was accepted.
+// A zero receivedAt (a WAL record written before it was persisted) falls back to
+// the current time.
+func (c *Client) dataToStream(data *internal.AlertGroup, extraLabels map[string]string, receivedAt time.Time) ([]stream, error) {
 	if len(data.Alerts) == 0 {
 		return nil, fmt.Errorf("no alerts to process")
+	}
+	if receivedAt.IsZero() {
+		receivedAt = time.Now()
 	}
 
 	byStatus := groupAlertsByStatus(data.Alerts)
@@ -40,7 +46,7 @@ func (c *Client) dataToStream(data *internal.AlertGroup, extraLabels map[string]
 
 	streams := make([]stream, 0, len(byStatus))
 	for status, alerts := range byStatus {
-		s, err := c.createStreamForStatus(status, alerts, data, baseLabels)
+		s, err := c.createStreamForStatus(status, alerts, data, baseLabels, receivedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -49,7 +55,7 @@ func (c *Client) dataToStream(data *internal.AlertGroup, extraLabels map[string]
 	return streams, nil
 }
 
-func (c *Client) createStreamForStatus(status string, alerts []internal.Alert, data *internal.AlertGroup, baseLabels map[string]string) (stream, error) {
+func (c *Client) createStreamForStatus(status string, alerts []internal.Alert, data *internal.AlertGroup, baseLabels map[string]string, receivedAt time.Time) (stream, error) {
 	streamLabels := cloneLabels(baseLabels)
 	streamLabels["alert_status"] = status
 
@@ -59,16 +65,6 @@ func (c *Client) createStreamForStatus(status string, alerts []internal.Alert, d
 	}
 
 	for _, alert := range alerts {
-		// Use the alert's real timestamp rather than time.Now() so history is
-		// accurate: StartsAt for firing, EndsAt for resolved when valid.
-		timestamp := alert.StartsAt
-		if status == "resolved" && !alert.EndsAt.IsZero() && alert.EndsAt.After(alert.StartsAt) {
-			timestamp = alert.EndsAt
-		}
-		if timestamp.IsZero() {
-			timestamp = time.Now()
-		}
-
 		flattened := FlattenAlertGroup{
 			Version:           data.Version,
 			GroupKey:          data.GroupKey,
@@ -90,11 +86,16 @@ func (c *Client) createStreamForStatus(status string, alerts []internal.Alert, d
 		if c.cfg.StructuredMetadata {
 			meta = buildAlertMetadata(alert)
 		}
-		s.Values = append(s.Values, row{At: timestamp, Val: string(jsonData), Meta: meta})
+		// The entry timestamp is when AlertManager notified us, not when the alert
+		// started: Loki is ingest-ordered, and an alert that has been firing for
+		// days would be rejected outright (reject_old_samples / "entry too far
+		// behind") or land outside the retention window. The alert's own StartsAt
+		// and EndsAt travel in the JSON log line, so no information is lost.
+		s.Values = append(s.Values, row{At: receivedAt, Val: string(jsonData), Meta: meta})
 	}
 
-	// Colliding StartsAt values within a group are common; keep every entry by
-	// giving each a strictly increasing, unique nanosecond timestamp.
+	// Every entry in the group shares one receive time; keep them all by giving
+	// each a strictly increasing, unique nanosecond timestamp.
 	s.Values = ensureMonotonic(s.Values)
 	return s, nil
 }

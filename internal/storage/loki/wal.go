@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -26,7 +27,9 @@ import (
 // Semantics are at-least-once: a crash after a successful push but before the
 // checkpoint advances replays already-delivered alerts. Duplicates are tolerable
 // here — the timestamp de-collision (timestamps.go) keeps entries unique and
-// Loki itself drops byte-identical (timestamp, line) repeats.
+// Loki itself drops byte-identical (timestamp, line) repeats. That last part is
+// why each record persists its ReceivedAt: a replay must reproduce the original
+// entry timestamp, or Loki sees a distinct entry and stores it twice.
 const (
 	walLogName      = "wal.log"
 	walCheckpoint   = "wal.ckpt"
@@ -38,11 +41,15 @@ const (
 // closed (during shutdown) or left nil by a failed compaction swap.
 var errWALClosed = errors.New("loki wal is closed")
 
-// walRecord is one durably-logged alert awaiting delivery.
+// walRecord is one durably-logged alert awaiting delivery. ReceivedAt is
+// persisted so a replayed record is pushed at the timestamp it originally had;
+// records written before this field existed decode to the zero time, which
+// dataToStream treats as "stamp it now".
 type walRecord struct {
 	Seq         uint64               `json:"seq"`
 	Group       *internal.AlertGroup `json:"group"`
 	ExtraLabels map[string]string    `json:"extraLabels,omitempty"`
+	ReceivedAt  time.Time            `json:"receivedAt,omitzero"`
 }
 
 // wal is an append-only write-ahead log with a contiguous-ack checkpoint. It is
@@ -115,7 +122,7 @@ func (w *wal) recover() []walRecord {
 
 // append durably writes one record and returns its assigned sequence number.
 // The data is fsync'd before returning so a crash cannot lose an accepted alert.
-func (w *wal) append(group *internal.AlertGroup, extraLabels map[string]string) (uint64, error) {
+func (w *wal) append(group *internal.AlertGroup, extraLabels map[string]string, receivedAt time.Time) (uint64, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -124,7 +131,7 @@ func (w *wal) append(group *internal.AlertGroup, extraLabels map[string]string) 
 	}
 
 	w.seq++
-	rec := walRecord{Seq: w.seq, Group: group, ExtraLabels: extraLabels}
+	rec := walRecord{Seq: w.seq, Group: group, ExtraLabels: extraLabels, ReceivedAt: receivedAt}
 	body, err := json.Marshal(rec)
 	if err != nil {
 		w.seq-- // nothing was written; keep sequence numbers gap-free

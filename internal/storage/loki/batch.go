@@ -12,11 +12,15 @@ import (
 )
 
 // queuedAlert is one alert group awaiting batched delivery, together with the
-// per-request labels captured when it was enqueued. seq is its WAL sequence
-// number (0 when the WAL is disabled), used to acknowledge it once delivered.
+// per-request labels captured when it was enqueued. receivedAt is the webhook
+// arrival time, stamped in Save and carried here so a flush — or a WAL replay
+// after a crash — reproduces the same Loki entry timestamp. seq is its WAL
+// sequence number (0 when the WAL is disabled), used to acknowledge it once
+// delivered.
 type queuedAlert struct {
 	group       *internal.AlertGroup
 	extraLabels map[string]string
+	receivedAt  time.Time
 	seq         uint64
 }
 
@@ -91,7 +95,7 @@ func (b *batchProcessor) start() {
 // space, but AlertManager (the expected client) does not cancel mid-request.
 func (b *batchProcessor) enqueue(ctx context.Context, qa queuedAlert) error {
 	if b.wal != nil {
-		seq, err := b.wal.append(qa.group, qa.extraLabels)
+		seq, err := b.wal.append(qa.group, qa.extraLabels, qa.receivedAt)
 		if err != nil {
 			logrus.Errorf("Failed to write alert to Loki WAL: %v", err)
 			recordOutcome(qa.group.Receiver, qa.group.Status, len(qa.group.Alerts), err)
@@ -133,7 +137,7 @@ func (b *batchProcessor) replay(records []walRecord) {
 		defer b.wg.Done()
 		for _, rec := range records {
 			select {
-			case b.in <- queuedAlert{group: rec.Group, extraLabels: rec.ExtraLabels, seq: rec.Seq}:
+			case b.in <- queuedAlert{group: rec.Group, extraLabels: rec.ExtraLabels, receivedAt: rec.ReceivedAt, seq: rec.Seq}:
 			case <-b.stopCh:
 				return
 			}
@@ -223,7 +227,7 @@ func (b *batchProcessor) flush(batch []queuedAlert) {
 	// group's (possibly successful) delivery outcome.
 	ready := make([]convertedGroup, 0, len(batch))
 	for _, qa := range batch {
-		streams, err := b.client.dataToStream(qa.group, qa.extraLabels)
+		streams, err := b.client.dataToStream(qa.group, qa.extraLabels, qa.receivedAt)
 		if err != nil {
 			logrus.Errorf("Error converting data to stream: %v", err)
 			recordOutcome(qa.group.Receiver, qa.group.Status, len(qa.group.Alerts), err)

@@ -283,9 +283,10 @@ func TestSave_BatchWALReplaysRecoveredAlerts(t *testing.T) {
 
 	// Simulate a crash: a previous process durably logged an alert but died
 	// before flushing it (no ack).
+	received := time.Now().Add(-2 * time.Hour)
 	seed, err := openWAL(dir)
 	require.NoError(t, err)
-	_, err = seed.append(walGroup("wal-replay"), map[string]string{"source": "am"})
+	_, err = seed.append(walGroup("wal-replay"), map[string]string{"source": "am"}, received)
 	require.NoError(t, err)
 	require.NoError(t, seed.close())
 
@@ -310,6 +311,15 @@ func TestSave_BatchWALReplaysRecoveredAlerts(t *testing.T) {
 
 	require.NoError(t, client.Close(context.Background()))
 	assert.Equal(t, saved+1, testutil.ToFloat64(metrics.AlertsSavedTotal.WithLabelValues("wal-replay", "firing")))
+
+	// The replayed entry keeps the timestamp it was accepted with, so Loki drops
+	// it as a byte-identical duplicate of the push this process may have already
+	// made before crashing. Stamping the flush time here would defeat that.
+	pushed := fake.streams()
+	require.Len(t, pushed, 1)
+	require.Len(t, pushed[0].Values, 1)
+	assert.Equal(t, received.UnixNano(), pushed[0].Values[0].At.UnixNano(),
+		"a replayed alert must be pushed at its original receive time")
 
 	// The replayed record is now acknowledged: a fresh open recovers nothing.
 	reopened, err := openWAL(dir)

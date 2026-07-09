@@ -89,10 +89,16 @@ direction is one-way: `internal` (leaf: domain model + interfaces) ← `internal
   explodes Loki's active-stream count. Label *names* are validated (`isValidLabelName`) at the single
   chokepoint `buildStreamLabels`, so a stray `?app-id=x` query param can't make Loki reject the whole
   push. One stream per `alert_status`.
-- **Timestamps** use the alert's real `StartsAt`/`EndsAt`, not `time.Now()`. `ensureMonotonic`
-  (`timestamps.go`) sorts each stream's entries ascending and nudges colliding timestamps forward 1ns
-  so Loki doesn't silently drop alerts that share a `StartsAt`; applied on the sync path and after
-  `mergeStreams` (cross-group collisions).
+- **Timestamps**: the Loki entry timestamp is the **webhook receive time**, stamped once in
+  `Save` and carried through the batch queue and the WAL (`walRecord.ReceivedAt`) so a replay
+  reproduces the identical entry. It is **not** the alert's `StartsAt`: Loki is ingest-ordered, so an
+  alert that has been firing for a while is rejected outright (`reject_old_samples`, or the per-stream
+  "entry too far behind" window) or lands outside `retention_period` — an alert firing longer than
+  retention would be written straight into an expired window. Nothing is lost: `startsAt`/`endsAt`
+  travel in the JSON log line. `ensureMonotonic` (`timestamps.go`) sorts each stream's entries
+  ascending and nudges colliding timestamps forward 1ns so Loki doesn't silently drop the alerts of a
+  group (which all share one receive time); applied on the sync path and after `mergeStreams`
+  (cross-group collisions).
 - **Structured metadata** (`ALERTSNITCH_LOKI_STRUCTURED_METADATA`, opt-in): attaches a curated set of
   high-value fields (`fingerprint` + the high-card labels kept out of stream labels) as Loki 3.x
   structured metadata (the optional 3rd tuple element in `row`), for fast filtering without stream
@@ -105,7 +111,8 @@ direction is one-way: `internal` (leaf: domain model + interfaces) ← `internal
   only when its batch reaches a terminal outcome; a contiguous-ack checkpoint + compaction bound the
   log. On startup, records past the checkpoint are replayed. Crash-durable, **at-least-once** (a crash
   between push and checkpoint replays already-delivered alerts — tolerated because timestamp
-  de-collision + Loki dedup absorb duplicates).
+  de-collision + Loki dedup absorb duplicates; the persisted `ReceivedAt` is what makes a replayed
+  entry byte-identical, and therefore droppable, rather than a second copy).
 - **Persistence metrics**: the backend records `saved_total`/`saving_failures_total` at the *real*
   point of durability (synchronously, or at batch-flush resolution). Queue-full drops count as
   failures. The server does **not** double-count these — it owns only received/invalid + the gauge.
