@@ -158,3 +158,32 @@ func TestUnitOfWork_RetriesDeadlockOnCommit(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 2, commits)
 }
+
+func TestOpen_RejectsEmptyDSN(t *testing.T) {
+	_, err := open("sqlstoretest", Config{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "empty DSN")
+}
+
+func TestOpen_AppliesConnIdleTime(t *testing.T) {
+	t.Run("positive idle time", func(t *testing.T) {
+		b, err := open("sqlstoretest", Config{
+			DSN:                    "test",
+			MaxIdleConns:           1,
+			MaxOpenConns:           2,
+			MaxConnLifetimeSeconds: 600,
+			MaxConnIdleTimeSeconds: 120,
+		})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = b.db.Close() })
+	})
+
+	t.Run("zero disables idle timeout", func(t *testing.T) {
+		b, err := open("sqlstoretest", Config{
+			DSN:                    "test",
+			MaxConnIdleTimeSeconds: 0,
+		})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = b.db.Close() })
+	})
+}

@@ -21,6 +21,9 @@ const (
 	// saveTimeout bounds persistence even when the request context is canceled
 	// (e.g. during graceful shutdown). Matches main.shutdownTimeout.
 	saveTimeout = 30 * time.Second
+	// probeTimeout bounds health checks independently of probe client disconnect
+	// or request-context cancellation during graceful shutdown.
+	probeTimeout = 5 * time.Second
 )
 
 // Server represents a web server that processes webhooks
@@ -145,7 +148,10 @@ func (s *Server) webhookPost(w http.ResponseWriter, r *http.Request) {
 // healthyProbe is the liveness probe: it only checks that the backend is
 // reachable (no schema query), so a frequent probe stays cheap.
 func (s *Server) healthyProbe(w http.ResponseWriter, r *http.Request) {
-	h := s.probe(r.Context(), internal.HealthChecker.CheckLiveness)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), probeTimeout)
+	defer cancel()
+
+	h := s.probe(ctx, internal.HealthChecker.CheckLiveness)
 	if !h.Ready {
 		logrus.Errorf("backend is not reachable: %s", h.Detail)
 		http.Error(w, fmt.Sprintf("backend is not reachable: %s", h.Detail), http.StatusServiceUnavailable)
@@ -155,7 +161,10 @@ func (s *Server) healthyProbe(w http.ResponseWriter, r *http.Request) {
 
 // readyProbe is the readiness probe: reachability plus schema/model compatibility.
 func (s *Server) readyProbe(w http.ResponseWriter, r *http.Request) {
-	h := s.probe(r.Context(), internal.HealthChecker.CheckReadiness)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), probeTimeout)
+	defer cancel()
+
+	h := s.probe(ctx, internal.HealthChecker.CheckReadiness)
 	if !h.Ready {
 		logrus.Errorf("backend is not reachable: %s", h.Detail)
 		http.Error(w, fmt.Sprintf("backend is not reachable: %s", h.Detail), http.StatusServiceUnavailable)

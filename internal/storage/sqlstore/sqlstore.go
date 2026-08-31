@@ -24,6 +24,7 @@ type Config struct {
 	MaxIdleConns           int
 	MaxOpenConns           int
 	MaxConnLifetimeSeconds int
+	MaxConnIdleTimeSeconds int
 }
 
 // base carries the shared *sql.DB plumbing for both dialects.
@@ -44,6 +45,12 @@ func open(driver string, cfg Config) (base, error) {
 	}
 	conn.SetMaxIdleConns(cfg.MaxIdleConns)
 	conn.SetMaxOpenConns(cfg.MaxOpenConns)
+	// SetConnMaxIdleTime before SetConnMaxLifetime so the pool cleaner interval
+	// is configured correctly; idle recycling avoids reusing connections the
+	// server or a proxy already closed (MySQL driver "bad idle connection: EOF").
+	if cfg.MaxConnIdleTimeSeconds > 0 {
+		conn.SetConnMaxIdleTime(time.Duration(cfg.MaxConnIdleTimeSeconds) * time.Second)
+	}
 	conn.SetConnMaxLifetime(time.Duration(cfg.MaxConnLifetimeSeconds) * time.Second)
 
 	return base{db: conn, name: driver}, nil

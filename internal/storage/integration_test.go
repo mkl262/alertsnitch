@@ -35,6 +35,7 @@ func connectForTest(t *testing.T) internal.Storer {
 			MaxIdleConns:           1,
 			MaxOpenConns:           2,
 			MaxConnLifetimeSeconds: 600,
+			MaxConnIdleTimeSeconds: 120,
 		},
 	})
 	require.NoError(t, err)
