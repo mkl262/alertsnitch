@@ -17,16 +17,18 @@ import (
 // internal.HealthChecker. It records the last AlertGroup it was asked to save
 // and lets each method's behavior be injected.
 type fakeStorer struct {
-	saved       *internal.AlertGroup
-	savedLabels map[string]string
-	saveErr     error
-	notReady    bool
-	notHealthy  bool
-	saveCalled  int
+	saved        *internal.AlertGroup
+	savedLabels  map[string]string
+	saveCtxAlive bool
+	saveErr      error
+	notReady     bool
+	notHealthy   bool
+	saveCalled   int
 }
 
-func (f *fakeStorer) Save(_ context.Context, data *internal.AlertGroup, extraLabels map[string]string) error {
+func (f *fakeStorer) Save(ctx context.Context, data *internal.AlertGroup, extraLabels map[string]string) error {
 	f.saveCalled++
+	f.saveCtxAlive = ctx.Err() == nil
 	f.saved = data
 	f.savedLabels = extraLabels
 	return f.saveErr
@@ -65,6 +67,24 @@ func TestWebhookPost_ValidPayloadIsSaved(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(t, 1, fake.saveCalled, "Save should be called exactly once")
 	assert.NotNil(t, fake.saved)
+	assert.True(t, fake.saveCtxAlive, "save context should stay active while Save runs")
+}
+
+func TestWebhookPost_SaveUsesDetachedContext(t *testing.T) {
+	fake := &fakeStorer{}
+	s := New(fake, false)
+
+	req := httptest.NewRequest(http.MethodPost, "/webhook", strings.NewReader(string(validPayload(t))))
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	req = req.WithContext(ctx)
+
+	rec := httptest.NewRecorder()
+	s.r.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, 1, fake.saveCalled)
+	assert.True(t, fake.saveCtxAlive, "save should not inherit a canceled request context")
 }
 
 func TestWebhookPost_InvalidJSONReturns400(t *testing.T) {

@@ -16,9 +16,12 @@ import (
 	"github.com/mikehsu0618/alertsnitch/internal/webhook"
 )
 
-// SupportedWebhookVersion is the alert webhook data version that is supported
-// by this app
-const SupportedWebhookVersion = "4"
+const (
+	SupportedWebhookVersion = "4"
+	// saveTimeout bounds persistence even when the request context is canceled
+	// (e.g. during graceful shutdown). Matches main.shutdownTimeout.
+	saveTimeout = 30 * time.Second
+)
 
 // Server represents a web server that processes webhooks
 type Server struct {
@@ -128,7 +131,11 @@ func (s *Server) webhookPost(w http.ResponseWriter, r *http.Request) {
 
 	// The backend owns the saved/failed counters, recording them at the real
 	// point of persistence (which, for Loki batch mode, is asynchronous).
-	if err = s.db.Save(r.Context(), data, queryLabels(r)); err != nil {
+	// WithoutCancel keeps in-flight saves alive when the request context is
+	// canceled during shutdown; saveTimeout still bounds hung DB calls.
+	saveCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), saveTimeout)
+	defer cancel()
+	if err = s.db.Save(saveCtx, data, queryLabels(r)); err != nil {
 		logrus.Errorf("failed to save alerts: %s", err)
 		http.Error(w, fmt.Sprintf("failed to save alerts: %s", err), http.StatusInternalServerError)
 		return
