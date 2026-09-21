@@ -1,0 +1,3874 @@
+{
+  "apiVersion": "dashboard.grafana.app/v2",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "E9sEj4J7k",
+    "generation": 12,
+    "creationTimestamp": "2025-10-17T23:33:24Z",
+    "labels": {},
+    "annotations": {}
+  },
+  "spec": {
+    "annotations": [
+      {
+        "kind": "AnnotationQuery",
+        "spec": {
+          "query": {
+            "kind": "DataQuery",
+            "group": "grafana",
+            "version": "v0",
+            "spec": {
+              "limit": 100,
+              "matchAny": false,
+              "tags": [],
+              "type": "dashboard"
+            },
+            "labels": {
+              "grafana.app/export-label": "grafana-1"
+            }
+          },
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "builtIn": true
+        }
+      }
+    ],
+    "cursorSync": "Off",
+    "description": "Dashboard for alertsnitch。https://gitlab.com/yakshaving.art/alertsnitch",
+    "editable": true,
+    "elements": {
+      "panel-12": {
+        "kind": "Panel",
+        "spec": {
+          "id": 12,
+          "title": "Triggered Alerts",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  startsat AS time,\n  id as firing\nFROM alert\nWHERE\n  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n  AND status='firing'\nORDER BY startsat",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "Firing",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  startsat AS time,\n  id as resolved\nFROM alert\nWHERE\n  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n  AND status='resolved'\nORDER BY startsat",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "Resolved",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "groupBy",
+                  "spec": {
+                    "options": {
+                      "fields": {
+                        "firing": {
+                          "aggregations": [
+                            "count"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "id": {
+                          "aggregations": [
+                            "count"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "resolved": {
+                          "aggregations": [
+                            "count"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "time": {
+                          "aggregations": [],
+                          "operation": "groupby"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.2",
+            "spec": {
+              "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "enableFacetedFilter": false,
+                  "overflow": "ellipsis",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "palette-classic",
+                    "seriesBy": "max"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.9,
+                    "drawStyle": "bars",
+                    "fillOpacity": 68,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineStyle": {
+                      "fill": "solid"
+                    },
+                    "lineWidth": 1,
+                    "pointSize": 1,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "always",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "normal"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "firing (count)"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Triggered"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "resolved (count)"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Resolved"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "panel-16": {
+        "kind": "Panel",
+        "spec": {
+          "id": 16,
+          "title": "Total Alerts sent",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  COUNT(1)\nFROM alert\nWHERE\n  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n  AND status='firing'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.2",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "red"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-18": {
+        "kind": "Panel",
+        "spec": {
+          "id": 18,
+          "title": "Resolved Alerts",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  COUNT(1)\nFROM alert\nWHERE\n  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n  AND status='resolved'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.2.2",
+            "spec": {
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-22": {
+        "kind": "Panel",
+        "spec": {
+          "id": 22,
+          "title": "Alerts by severity",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  startsat AS time,\n  status,\n  id AS \"id\"\nFROM alert\nWHERE\n  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n  AND status='firing'\nORDER BY startsat",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"severity\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t  AND status='firing'\n\t)\n\tAND lkv.labelkey='severity'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "D",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "merge",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "groupBy",
+                  "spec": {
+                    "options": {
+                      "fields": {
+                        "id": {
+                          "aggregations": [
+                            "count"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "severity": {
+                          "aggregations": [],
+                          "operation": "groupby"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {},
+                      "includeByName": {},
+                      "indexByName": {},
+                      "renameByName": {
+                        "id (count)": "count",
+                        "severity": ""
+                      }
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.2.2",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "frameIndex": 1,
+                "showHeader": true,
+                "sortBy": []
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "center",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "filterable": true,
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "description"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 436
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "severity"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 104
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "env"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 94
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "startsAt"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 156
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "严重性"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 98
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "panel-24": {
+        "kind": "Panel",
+        "spec": {
+          "id": 24,
+          "title": "Resolved alerts by severity",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  startsat AS time,\n  status,\n  id AS \"id\"\nFROM alert\nWHERE\n  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n  AND status='resolved'\nORDER BY startsat",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"severity\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t  AND status='resolved'\n\t)\n\tAND lkv.labelkey='severity'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "D",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "merge",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "groupBy",
+                  "spec": {
+                    "options": {
+                      "fields": {
+                        "id": {
+                          "aggregations": [
+                            "count"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "severity": {
+                          "aggregations": [],
+                          "operation": "groupby"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {},
+                      "includeByName": {},
+                      "indexByName": {},
+                      "renameByName": {
+                        "id (count)": "count",
+                        "severity": ""
+                      }
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.2.2",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "frameIndex": 1,
+                "showHeader": true,
+                "sortBy": [
+                  {
+                    "desc": false,
+                    "displayName": "startsAt"
+                  }
+                ]
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "center",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "filterable": true,
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "description"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 436
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "severity"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 104
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "env"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 94
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "startsAt"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 156
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "panel-26": {
+        "kind": "Panel",
+        "spec": {
+          "id": 26,
+          "title": "Active Alerts",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  id AS \"id\",\n  status,\n  startsat AS \"startsat\",\n  endsat AS \"endsat\",\n  EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'UTC') - startsat))::bigint AS duration,\n  fingerprint\nFROM alert\nWHERE\n  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n  AND status='firing'\nORDER BY id",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"alertname\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t\tAND status='firing'\n\t)\n\tAND lkv.labelkey='alertname'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"synch_environment\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t  AND status='firing'\n\t)\n\tAND lkv.labelkey='synch_environment'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "C",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"severity\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t\tAND status='firing'\n\t)\n\tAND lkv.labelkey='severity'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "D",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"synch_region\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t\tAND status='firing'\n\t)\n\tAND lkv.labelkey='synch_region'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "E",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"instance\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t\tAND status='firing'\n\t)\n\tAND lkv.labelkey='instance'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "F",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"pod\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t\tAND status='firing'\n\t)\n\tAND lkv.labelkey='pod'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "G",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\taa.alertid AS \"id\",\n\takv.value AS \"description\"\nFROM\n\talertannotation aa\n\tINNER JOIN annotationkv akv ON aa.annotationkvid = akv.id\nWHERE\n\taa.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t\tAND status='firing'\n\t)\n\tAND akv.annotationkey='description'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "H",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "merge",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "groupBy",
+                  "spec": {
+                    "options": {
+                      "fields": {
+                        "alertname": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "az": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "description": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "duration": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "endsat": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "env": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "fingerprint": {
+                          "aggregations": [],
+                          "operation": "groupby"
+                        },
+                        "hostname": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "id": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "instance": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "pod": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "project": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "severity": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "startsat": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "status": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "synch_environment": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "synch_region": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "filterFieldsByName",
+                  "spec": {
+                    "options": {
+                      "include": {
+                        "names": [
+                          "id (last)",
+                          "startsat (last)",
+                          "duration (last)",
+                          "alertname (last)",
+                          "synch_environment (last)",
+                          "severity (last)",
+                          "synch_region (last)",
+                          "instance (last)",
+                          "pod (last)",
+                          "description (last)"
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {},
+                      "includeByName": {},
+                      "indexByName": {
+                        "alertname (last)": 4,
+                        "description (last)": 5,
+                        "duration (last)": 2,
+                        "id (last)": 0,
+                        "severity (last)": 3,
+                        "startsat (last)": 1,
+                        "synch_environment (last)": 6,
+                        "synch_region (last)": 7
+                      },
+                      "renameByName": {
+                        "alertname (last)": "Alert Name",
+                        "description (last)": "Description",
+                        "duration (last)": "Duration",
+                        "hostname (last)": "主机名",
+                        "id (last)": "ID",
+                        "instance (last)": "Instance",
+                        "pod (last)": "Pod",
+                        "severity (last)": "Severity",
+                        "startsat (last)": "Started At",
+                        "synch_environment (last)": "Environment",
+                        "synch_region (last)": "Region"
+                      }
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.2.2",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "frameIndex": 2,
+                "showHeader": true,
+                "sortBy": [
+                  {
+                    "desc": false,
+                    "displayName": "id (last)"
+                  }
+                ]
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "left",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "filterable": true,
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "ID"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 55
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Started At"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 162
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Duration"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 107
+                      },
+                      {
+                        "id": "unit",
+                        "value": "s"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Severity"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 90
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Description"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 522
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Instance"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 272
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Pod"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 166
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "panel-27": {
+        "kind": "Panel",
+        "spec": {
+          "id": 27,
+          "title": "Resolved Alerts",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  id AS \"id\",\n  status,\n  startsat AS \"startsat\",\n  endsat AS \"endsat\",\n  EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'UTC') - startsat))::bigint AS duration,\n  fingerprint\nFROM alert\nWHERE\n  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n  AND status='resolved'\nORDER BY id",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"alertname\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t\tAND status='resolved'\n\t)\n\tAND lkv.labelkey='alertname'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"synch_environment\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t  AND status='resolved'\n\t)\n\tAND lkv.labelkey='synch_environment'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "C",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"severity\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t\tAND status='resolved'\n\t)\n\tAND lkv.labelkey='severity'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "D",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"synch_region\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t\tAND status='resolved'\n\t)\n\tAND lkv.labelkey='synch_region'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "E",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"instance\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t\tAND status='resolved'\n\t)\n\tAND lkv.labelkey='instance'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "F",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"pod\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t\tAND status='resolved'\n\t)\n\tAND lkv.labelkey='pod'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "G",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\taa.alertid AS \"id\",\n\takv.value AS \"description\"\nFROM\n\talertannotation aa\n\tINNER JOIN annotationkv akv ON aa.annotationkvid = akv.id\nWHERE\n\taa.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t\tAND status='resolved'\n\t)\n\tAND akv.annotationkey='description'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "H",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "merge",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "groupBy",
+                  "spec": {
+                    "options": {
+                      "fields": {
+                        "alertname": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "az": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "description": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "duration": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "endsat": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "env": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "fingerprint": {
+                          "aggregations": [],
+                          "operation": "groupby"
+                        },
+                        "hostname": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "id": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "instance": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "pod": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "project": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "severity": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "startsat": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "status": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "synch_environment": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "synch_region": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "filterFieldsByName",
+                  "spec": {
+                    "options": {
+                      "include": {
+                        "names": [
+                          "id (last)",
+                          "startsat (last)",
+                          "duration (last)",
+                          "alertname (last)",
+                          "synch_environment (last)",
+                          "severity (last)",
+                          "synch_region (last)",
+                          "instance (last)",
+                          "pod (last)",
+                          "description (last)",
+                          "endsat (last)"
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {
+                        "duration (last)": true
+                      },
+                      "includeByName": {},
+                      "indexByName": {
+                        "alertname (last)": 5,
+                        "description (last)": 6,
+                        "duration (last)": 3,
+                        "endsat (last)": 2,
+                        "id (last)": 0,
+                        "instance (last)": 9,
+                        "pod (last)": 10,
+                        "severity (last)": 4,
+                        "startsat (last)": 1,
+                        "synch_environment (last)": 7,
+                        "synch_region (last)": 8
+                      },
+                      "renameByName": {
+                        "alertname (last)": "Alert Name",
+                        "description (last)": "Description",
+                        "duration (last)": "Age",
+                        "endsat (last)": "Resolved At",
+                        "hostname (last)": "主机名",
+                        "id (last)": "ID",
+                        "instance (last)": "Instance",
+                        "pod (last)": "Pod",
+                        "severity (last)": "Severity",
+                        "startsat (last)": "Started At",
+                        "synch_environment (last)": "Environment",
+                        "synch_region (last)": "Region"
+                      }
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.2.2",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "frameIndex": 2,
+                "showHeader": true,
+                "sortBy": [
+                  {
+                    "desc": false,
+                    "displayName": "id (last)"
+                  }
+                ]
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "left",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "filterable": true,
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "ID"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 55
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Started At"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 162
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Age"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 107
+                      },
+                      {
+                        "id": "unit",
+                        "value": "s"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Severity"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 90
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Description"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 522
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Instance"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 272
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Pod"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 166
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "panel-28": {
+        "kind": "Panel",
+        "spec": {
+          "id": 28,
+          "title": "Active Alerts",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n  id AS \"id\",\n  status,\n  startsat AS \"startsat\",\n  endsat AS \"endsat\",\n  EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'UTC') - startsat))::bigint AS duration,\n  fingerprint\nFROM alert\nWHERE\n  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\nORDER BY id",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"alertname\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t)\n\tAND lkv.labelkey='alertname'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"synch_environment\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t)\n\tAND lkv.labelkey='synch_environment'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "C",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"severity\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t)\n\tAND lkv.labelkey='severity'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "D",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"synch_region\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t)\n\tAND lkv.labelkey='synch_region'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "E",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"instance\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t)\n\tAND lkv.labelkey='instance'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "F",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\tal.alertid AS \"id\",\n\tlkv.value AS \"pod\"\nFROM\n\talertlabel al\n\tINNER JOIN labelkv lkv ON al.labelkvid = lkv.id\nWHERE\n\tal.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t)\n\tAND lkv.labelkey='pod'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "G",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorMode": "code",
+                        "format": "table",
+                        "group": [],
+                        "metricColumn": "none",
+                        "rawQuery": true,
+                        "rawSql": "SELECT\n\taa.alertid AS \"id\",\n\takv.value AS \"description\"\nFROM\n\talertannotation aa\n\tINNER JOIN annotationkv akv ON aa.annotationkvid = akv.id\nWHERE\n\taa.alertid IN (\n\tSELECT\n\t\tid \n\tFROM\n\t\talert \n\tWHERE\n\t  startsat BETWEEN (TO_TIMESTAMP(${__from:date:seconds}) - INTERVAL '5 minutes') AND (TO_TIMESTAMP(${__to:date:seconds}) - INTERVAL '5 minutes')\n\t)\n\tAND akv.annotationkey='description'",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "id"
+                              ],
+                              "type": "column"
+                            }
+                          ]
+                        ],
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        },
+                        "table": "alert",
+                        "timeColumn": "startsat",
+                        "timeColumnType": "timestamp",
+                        "where": [
+                          {
+                            "name": "$__timeFilter",
+                            "params": [],
+                            "type": "macro"
+                          }
+                        ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-postgresql-datasource-1",
+                        "grafana.app/export-datasource-name": "infra-alertsnitch"
+                      }
+                    },
+                    "refId": "H",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "merge",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "groupBy",
+                  "spec": {
+                    "options": {
+                      "fields": {
+                        "alertname": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "az": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "description": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "duration": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "endsat": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "env": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "fingerprint": {
+                          "aggregations": [],
+                          "operation": "groupby"
+                        },
+                        "hostname": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "id": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "instance": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "pod": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "project": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "severity": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "startsat": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "status": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "synch_environment": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        },
+                        "synch_region": {
+                          "aggregations": [
+                            "last"
+                          ],
+                          "operation": "aggregate"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "filterFieldsByName",
+                  "spec": {
+                    "options": {
+                      "include": {
+                        "names": [
+                          "id (last)",
+                          "status (last)",
+                          "startsat (last)",
+                          "duration (last)",
+                          "alertname (last)",
+                          "synch_environment (last)",
+                          "severity (last)",
+                          "synch_region (last)",
+                          "instance (last)",
+                          "pod (last)",
+                          "description (last)",
+                          "endsat (last)"
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {},
+                      "includeByName": {},
+                      "indexByName": {
+                        "alertname (last)": 6,
+                        "description (last)": 7,
+                        "duration (last)": 3,
+                        "endsat (last)": 2,
+                        "id (last)": 0,
+                        "instance (last)": 10,
+                        "pod (last)": 11,
+                        "severity (last)": 5,
+                        "startsat (last)": 1,
+                        "status (last)": 4,
+                        "synch_environment (last)": 8,
+                        "synch_region (last)": 9
+                      },
+                      "renameByName": {
+                        "alertname (last)": "Alert Name",
+                        "description (last)": "Description",
+                        "duration (last)": "Age",
+                        "endsat (last)": "Resolved At",
+                        "hostname (last)": "主机名",
+                        "id (last)": "ID",
+                        "instance (last)": "Instance",
+                        "pod (last)": "Pod",
+                        "severity (last)": "Severity",
+                        "startsat (last)": "Started At",
+                        "status (last)": "Status",
+                        "synch_environment (last)": "Environment",
+                        "synch_region (last)": "Region"
+                      }
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.2.2",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "frameIndex": 2,
+                "showHeader": true,
+                "sortBy": [
+                  {
+                    "desc": false,
+                    "displayName": "id (last)"
+                  }
+                ]
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "mappings": [
+                    {
+                      "type": "value",
+                      "options": {
+                        "critical": {
+                          "color": "red",
+                          "index": 3
+                        },
+                        "firing": {
+                          "color": "dark-orange",
+                          "index": 4
+                        },
+                        "info": {
+                          "color": "blue",
+                          "index": 1
+                        },
+                        "none": {
+                          "color": "green",
+                          "index": 0
+                        },
+                        "resolved": {
+                          "color": "dark-green",
+                          "index": 5
+                        },
+                        "warning": {
+                          "color": "yellow",
+                          "index": 2
+                        }
+                      }
+                    }
+                  ],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 0,
+                        "color": "#EAB839"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "left",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "filterable": true,
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "ID"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 55
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Started At"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 162
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Age"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 107
+                      },
+                      {
+                        "id": "unit",
+                        "value": "s"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Severity"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 90
+                      },
+                      {
+                        "id": "color"
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "applyToRow": true,
+                          "mode": "basic",
+                          "type": "color-background"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Description"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 522
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Instance"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 272
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Pod"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 166
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Status"
+                    },
+                    "properties": [
+                      {
+                        "id": "color"
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "mode": "basic",
+                          "type": "color-background"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "layout": {
+      "kind": "RowsLayout",
+      "spec": {
+        "rows": [
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "",
+              "collapse": false,
+              "hideHeader": true,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 5,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-16"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 5,
+                        "y": 0,
+                        "width": 7,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-22"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 0,
+                        "width": 5,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-18"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 17,
+                        "y": 0,
+                        "width": 7,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-24"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 6,
+                        "width": 24,
+                        "height": 10,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-12"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "Alert Details",
+              "collapse": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 24,
+                        "height": 10,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-28"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "Alerts by Status",
+              "collapse": true,
+              "layout": {
+                "kind": "AutoGridLayout",
+                "spec": {
+                  "maxColumnCount": 3,
+                  "columnWidthMode": "standard",
+                  "rowHeightMode": "standard",
+                  "items": [
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-26"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-27"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "links": [],
+    "liveNow": false,
+    "preload": false,
+    "tags": [],
+    "timeSettings": {
+      "timezone": "browser",
+      "from": "now-7d",
+      "to": "now",
+      "autoRefresh": "",
+      "autoRefreshIntervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "hideTimepicker": false,
+      "fiscalYearStartMonth": 0
+    },
+    "title": "Alert History",
+    "variables": []
+  }
+}
