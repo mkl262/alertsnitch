@@ -18,11 +18,11 @@ import (
 
 const (
 	SupportedWebhookVersion = "4"
-	// saveTimeout bounds persistence even when the request context is canceled
-	// (e.g. during graceful shutdown). Matches main.shutdownTimeout.
-	saveTimeout = 30 * time.Second
-	// probeTimeout bounds health checks independently of probe client disconnect
-	// or request-context cancellation during graceful shutdown.
+	// saveTimeout bounds persistence after the request context is canceled
+	// (client/proxy disconnect). Kept strictly below main.shutdownTimeout so
+	// driver.Close still has budget after Shutdown returns.
+	saveTimeout = 20 * time.Second
+	// probeTimeout bounds health checks independently of probe client disconnect.
 	probeTimeout = 5 * time.Second
 )
 
@@ -135,7 +135,7 @@ func (s *Server) webhookPost(w http.ResponseWriter, r *http.Request) {
 	// The backend owns the saved/failed counters, recording them at the real
 	// point of persistence (which, for Loki batch mode, is asynchronous).
 	// WithoutCancel keeps in-flight saves alive when the request context is
-	// canceled during shutdown; saveTimeout still bounds hung DB calls.
+	// canceled by a client/proxy disconnect; saveTimeout still bounds hung DB calls.
 	saveCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), saveTimeout)
 	defer cancel()
 	if err = s.db.Save(saveCtx, data, queryLabels(r)); err != nil {

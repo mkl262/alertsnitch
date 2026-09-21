@@ -26,10 +26,20 @@ func (*stubDriver) Open(string) (driver.Conn, error) {
 
 type stubConn struct{}
 
-var testCommitHook atomic.Value // stores func() error
+var testCommitHook atomic.Value   // stores func() error
+var testRollbackHook atomic.Value // stores func() error
 
 func (c *stubConn) commitError() error {
 	if v := testCommitHook.Load(); v != nil {
+		if fn, ok := v.(func() error); ok && fn != nil {
+			return fn()
+		}
+	}
+	return nil
+}
+
+func (c *stubConn) rollbackError() error {
+	if v := testRollbackHook.Load(); v != nil {
 		if fn, ok := v.(func() error); ok && fn != nil {
 			return fn()
 		}
@@ -52,7 +62,7 @@ type stubTx struct {
 }
 
 func (tx *stubTx) Commit() error   { return tx.conn.commitError() }
-func (tx *stubTx) Rollback() error { return nil }
+func (tx *stubTx) Rollback() error { return tx.conn.rollbackError() }
 
 type stubStmt struct{}
 
@@ -75,6 +85,7 @@ func openStubDB(t *testing.T) base {
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		testCommitHook.Store((func() error)(nil))
+		testRollbackHook.Store((func() error)(nil))
 		_ = db.Close()
 	})
 	return base{db: db, name: "stub"}
@@ -157,6 +168,36 @@ func TestUnitOfWork_RetriesDeadlockOnCommit(t *testing.T) {
 	err := b.unitOfWork(context.Background(), func(*sql.Tx) error { return nil })
 	require.NoError(t, err)
 	assert.Equal(t, 2, commits)
+}
+
+func TestUnitOfWork_SurfacesUnexpectedRollbackError(t *testing.T) {
+	b := openStubDB(t)
+	testRollbackHook.Store(func() error {
+		return fmt.Errorf("rollback boom")
+	})
+
+	err := b.unitOfWork(context.Background(), func(*sql.Tx) error {
+		return fmt.Errorf("exec boom")
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to rollback transaction")
+	assert.Contains(t, err.Error(), "rollback boom")
+	assert.Contains(t, err.Error(), "exec boom")
+}
+
+func TestUnitOfWork_IgnoresErrTxDoneOnRollback(t *testing.T) {
+	b := openStubDB(t)
+	testRollbackHook.Store(func() error {
+		return sql.ErrTxDone
+	})
+
+	err := b.unitOfWork(context.Background(), func(*sql.Tx) error {
+		return fmt.Errorf("exec boom")
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed execution")
+	assert.Contains(t, err.Error(), "exec boom")
+	assert.NotContains(t, err.Error(), "failed to rollback")
 }
 
 func TestOpen_RejectsEmptyDSN(t *testing.T) {

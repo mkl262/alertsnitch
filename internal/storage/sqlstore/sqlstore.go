@@ -7,7 +7,9 @@ package sqlstore
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"math/rand/v2"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -58,7 +60,8 @@ func open(driver string, cfg Config) (base, error) {
 
 // unitOfWork runs f in a transaction. MySQL deadlock (1213) is retried up to
 // mysqlDeadlockMaxRetries times — concurrent LabelKV upserts can still race
-// even with sorted lock order.
+// even with sorted lock order. Retries use a short jittered backoff so a
+// deadlock storm does not immediately re-contend.
 func (b base) unitOfWork(ctx context.Context, f func(*sql.Tx) error) error {
 	var err error
 	for attempt := 0; attempt < mysqlDeadlockMaxRetries; attempt++ {
@@ -67,6 +70,15 @@ func (b base) unitOfWork(ctx context.Context, f func(*sql.Tx) error) error {
 			return err
 		}
 		logrus.Warnf("MySQL deadlock detected, retrying transaction (attempt %d/%d)", attempt+1, mysqlDeadlockMaxRetries)
+		if attempt+1 == mysqlDeadlockMaxRetries {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return err
+		case <-time.After(time.Duration(attempt+1)*10*time.Millisecond +
+			time.Duration(rand.IntN(10))*time.Millisecond): //nolint:gosec // jitter only; not a security use
+		}
 	}
 	return err
 }
@@ -78,8 +90,11 @@ func (b base) runUnitOfWork(ctx context.Context, f func(*sql.Tx) error) error {
 	}
 
 	if err := f(tx); err != nil {
-		// The driver may already have rolled back when ctx was canceled.
-		_ = tx.Rollback()
+		// The driver may already have rolled back (sql.ErrTxDone); surface
+		// any other Rollback failure alongside the original error.
+		if rbErr := tx.Rollback(); rbErr != nil && !errors.Is(rbErr, sql.ErrTxDone) {
+			return fmt.Errorf("failed to rollback transaction (%w) after failing execution: %w", rbErr, err)
+		}
 		return fmt.Errorf("failed execution: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
