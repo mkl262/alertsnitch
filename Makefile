@@ -40,7 +40,7 @@ install: ## Install to GOPATH/bin
 
 .PHONY: test
 test: ## Run unit tests
-	go test -v -race -coverprofile=coverage.out ./...
+	go test -v -race -coverprofile=coverage.out -covermode=atomic -coverpkg=./... ./...
 	@go tool cover -func=coverage.out | tail -1
 
 .PHONY: test-short
@@ -124,7 +124,7 @@ bootstrap-postgres: ## Bootstrap PostgreSQL schema (requires POSTGRES_* env vars
 
 .PHONY: integration
 integration: ## Run integration tests against the local testing database
-	go test -v -tags integration -race -coverprofile=coverage.out ./...
+	go test -v -tags integration -race -coverprofile=coverage.out -covermode=atomic -coverpkg=./... ./...
 
 .PHONY: teardown_local_testing
 teardown_local_testing: ## Tear down the local integration testing container

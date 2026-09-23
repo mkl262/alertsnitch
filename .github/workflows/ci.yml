@@ -65,7 +65,9 @@ jobs:
         run: go mod download
 
       - name: Run tests
-        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+        # -coverpkg so coverage includes imported packages (needed for cross-package
+        # tests; matches integration jobs below for a consistent merge).
+        run: go test -v -race -coverprofile=coverage.out -covermode=atomic -coverpkg=./... ./...
 
       - name: Upload unit coverage
         uses: actions/upload-artifact@v7
@@ -112,7 +114,10 @@ jobs:
           mysql -h 127.0.0.1 -u root -pmysql alertsnitch < database/mysql/0.3.0-alertgroup-kv.sql
 
       - name: Run tests
-        run: go test -v -race -tags integration -coverprofile=coverage.out -covermode=atomic ./...
+        # Integration tests live in package storage_test and drive sqlstore via the
+        # Storer interface. Without -coverpkg, go test only attributes coverage to
+        # the package under test — mysql.go/postgres.go stay at 0% on Codecov.
+        run: go test -v -race -tags integration -coverprofile=coverage.out -covermode=atomic -coverpkg=./... ./...
 
       - name: Upload MySQL coverage
         uses: actions/upload-artifact@v7
@@ -160,7 +165,9 @@ jobs:
           PGPASSWORD=postgres psql -h 127.0.0.1 -U runner -d alertsnitch -f database/postgres/0.3.0-alertgroup-kv.sql
 
       - name: Run tests
-        run: go test -v -race -tags integration -coverprofile=coverage.out -covermode=atomic ./...
+        # See test-mysql: -coverpkg is required so sqlstore hits from storage_test
+        # integration tests appear in the coverprofile.
+        run: go test -v -race -tags integration -coverprofile=coverage.out -covermode=atomic -coverpkg=./... ./...
 
       - name: Upload PostgreSQL coverage
         uses: actions/upload-artifact@v7
