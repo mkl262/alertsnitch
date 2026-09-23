@@ -196,14 +196,14 @@ jobs:
 
       - name: Merge coverage reports
         run: |
-          go run github.com/wadey/gocovmerge@latest \
+          go run github.com/wadey/gocovmerge@v0.0.0-20160331181800-b5bfa59ec0ad \
             coverage/coverage-unit/coverage.out \
             coverage/coverage-mysql/coverage.out \
             coverage/coverage-postgres/coverage.out > coverage.out
           go tool cover -func=coverage.out | tail -1
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           files: ./coverage.out
           disable_search: true
