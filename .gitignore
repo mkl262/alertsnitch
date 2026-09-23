@@ -12,8 +12,8 @@ alertsnitch-*
 # Test binary, built with `go test -c`
 *.test
 
-# Output of the go coverage tool
-coverage.out
+# Output of the go coverage tool and other generated *.out files
+*.out
 coverage.html
 *.coverprofile
 
